@@ -1,4 +1,4 @@
-from oauth import Oauth
+from api.oauth import Oauth
 import logging
 from typing import Dict, Any, Optional
 import requests
