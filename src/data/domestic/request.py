@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict, Any
-from data.request import *
+from src.data.request import *
 
 
 @dataclass
@@ -9,23 +9,23 @@ class DomesticOrderRequest(OrderRequest):
     credit_type: str = "000"  # 기본값: 보통
     loan_date: str = "00000000"  # 기본값: 일반주문
     order_condition: str = "0"  # 기본값: 없음
-    
+
     def to_request_data(self) -> Dict[str, Any]:
         if not self.stock_code.startswith("A") and len(self.stock_code) == 6:
             isu_no = self.stock_code
         else:
             isu_no = self.stock_code
-            
+
         return {
             "In": {
-                "IsuNo": isu_no,
-                "OrdQty": self.quantity,
-                "OrdPrc": self.price,
-                "BnsTpCode": self.order_type,
-                "OrdprcPtnCode": self.price_type,
-                "MgntrnCode": self.credit_type,
-                "LoanDt": self.loan_date,
-                "OrdCndiTpCode": self.order_condition
+                "IsuNo": isu_no,  # 종목번호
+                "OrdQty": self.quantity,  # 주문수량
+                "OrdPrc": self.price,  # 주문가
+                "BnsTpCode": self.order_type,  # 매매구분
+                "OrdprcPtnCode": self.price_type,  # 호가유형코드
+                "MgntrnCode": self.credit_type,  # 신용거래코드
+                "LoanDt": self.loan_date,  # 대출일
+                "OrdCndiTpCode": self.order_condition,  # 주문조건
             }
         }
 
@@ -35,16 +35,16 @@ class DomesticCancelOrderRequest(OrderRequest):
     original_order_no: int
     stock_code: str
     quantity: int
-    
+
     def to_request_data(self) -> Dict[str, Any]:
         return {
             "In": {
                 "OrgOrdNo": self.original_order_no,
                 "IsuNo": self.stock_code,
-                "OrdQty": self.quantity
+                "OrdQty": self.quantity,
             }
         }
-    
+
 
 @dataclass
 class DomesticTransactionHistoryRequest(TransactionHistoryRequest):
@@ -52,25 +52,40 @@ class DomesticTransactionHistoryRequest(TransactionHistoryRequest):
     bns_tp_code: str = "0"  # 매매구분 (0:전체, 1:매도, 2:매수)
     isu_tp_code: str = "0"  # 종목구분 (0:전체)
     qry_tp: str = "0"  # 조회구분 (0:전체, 1:ELW, 2:ELW제외)
-    
+
     def to_request_data(self) -> Dict[str, Any]:
         return {
             "In": {
                 "ExecYn": self.exec_yn,
                 "BnsTpCode": self.bns_tp_code,
                 "IsuTpCode": self.isu_tp_code,
-                "QryTp": self.qry_tp
+                "QryTp": self.qry_tp,
             }
         }
 
+
 @dataclass
-class DomesticBalanceRequest(BalanceRequest):
-    qry_tp_code: str = "0"  # 조회구분코드 (0:전체, 1:비상장제외, 2:비상장,코넥스,kotc 제외)
-    
+class DomesticAbleOrderQuantityRequest(AbleOrderQuantityRequest):
+    bns_tp_code: str = "0"  # 매매구분 (1:매도, 2:매수)
+    stock_code: str = "0"  # 종목번호
+    price: float = 0  # 주문가
+
     def to_request_data(self) -> Dict[str, Any]:
-        """API 요청 데이터 형식으로 변환"""
         return {
             "In": {
-                "QryTpCode": self.qry_tp_code
+                "BnsTpCode": self.bns_tp_code,
+                "IsuNo": self.stock_code,
+                "OrdPrc": self.price,
             }
         }
+
+
+@dataclass
+class DomesticBalanceRequest(BalanceRequest):
+    qry_tp_code: str = (
+        "0"  # 조회구분코드 (0:전체, 1:비상장제외, 2:비상장,코넥스,kotc 제외)
+    )
+
+    def to_request_data(self) -> Dict[str, Any]:
+        """API 요청 데이터 형식으로 변환"""
+        return {"In": {"QryTpCode": self.qry_tp_code}}

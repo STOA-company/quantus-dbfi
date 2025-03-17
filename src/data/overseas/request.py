@@ -1,7 +1,7 @@
 from datetime import datetime
 from dataclasses import dataclass
 from typing import Dict, Any
-from data.request import *
+from src.data.request import *
 
 
 @dataclass
@@ -10,7 +10,7 @@ class OverseasOrderRequest(OrderRequest):
     order_condition: str = "1"  # 기본값: 일반
     trade_type: str = "0"  # 기본값: 주문
     original_order_no: int = 0  # 기본값: 신규주문
-    
+
     def to_request_data(self) -> Dict[str, Any]:
         return {
             "In": {
@@ -21,7 +21,7 @@ class OverseasOrderRequest(OrderRequest):
                 "AstkOrdQty": self.quantity,
                 "AstkOrdPrc": self.price,
                 "OrdTrdTpCode": self.trade_type,
-                "OrgOrdNo": self.original_order_no
+                "OrgOrdNo": self.original_order_no,
             }
         }
 
@@ -31,7 +31,7 @@ class OverseasCancelOrderRequest(OrderRequest):
     original_order_no: int
     stock_code: str
     quantity: int
-    
+
     def to_request_data(self) -> Dict[str, Any]:
         return {
             "In": {
@@ -42,10 +42,10 @@ class OverseasCancelOrderRequest(OrderRequest):
                 "AstkOrdQty": self.quantity,
                 "AstkOrdPrc": 0,
                 "OrdTrdTpCode": "2",  # 취소주문
-                "OrgOrdNo": self.original_order_no
+                "OrgOrdNo": self.original_order_no,
             }
         }
-    
+
 
 @dataclass
 class OverseasTransactionHistoryRequest(TransactionHistoryRequest):
@@ -59,14 +59,14 @@ class OverseasTransactionHistoryRequest(TransactionHistoryRequest):
     online_yn: str = "0"  # 온라인여부 (0:전체, Y:온라인, N:오프라인)
     cvrg_ord_yn: str = "0"  # 반대매매주문여부 (0:전체, Y:반대매매, N:일반주문)
     won_fcurr_tp_code: str = "1"  # 원화외화구분코드 (1:원화, 2:외화)
-    
+
     def to_request_data(self) -> Dict[str, Any]:
         # 시작일자와 종료일자가 없으면 당일 조회
         if not self.qry_srt_dt and not self.qry_end_dt:
             today = datetime.now().strftime("%Y%m%d")
             self.qry_srt_dt = today
             self.qry_end_dt = today
-            
+
         return {
             "In": {
                 "QrySrtDt": self.qry_srt_dt,
@@ -78,18 +78,40 @@ class OverseasTransactionHistoryRequest(TransactionHistoryRequest):
                 "QryTpCode": self.qry_tp_code,
                 "OnlineYn": self.online_yn,
                 "CvrgOrdYn": self.cvrg_ord_yn,
-                "WonFcurrTpCode": self.won_fcurr_tp_code
+                "WonFcurrTpCode": self.won_fcurr_tp_code,
+            }
+        }
+
+
+@dataclass
+class OverseasAbleOrderQuantityRequest(AbleOrderQuantityRequest):
+    trx_tp_code: str = "1"  # 처리구분코드 ("1:매도, 2:매수")
+    stock_code: str = "0"  # 해외주식종목번호
+    price: float = 0  # 해외주식주문가
+    won_fcurr_tp_code: str = "2"  # 원화외화구분코드 (1:원화, 2:외화)
+
+    def to_request_data(self) -> Dict[str, Any]:
+        return {
+            "In": {
+                "TrxTpCode": self.trx_tp_code,
+                "AstkIsuNo": self.stock_code,
+                "AstkOrdPrc": self.price,
+                "WonFcurrTpCode": self.won_fcurr_tp_code,
             }
         }
 
 
 @dataclass
 class OverseasBalanceRequest(BalanceRequest):
-    trx_tp_code: str = "2"  # 처리구분코드 (1:외화잔고, 2:주식잔고상세, 3:주식잔고(국가별), 9:당일실현손익)
-    cmsn_tp_code: str = "2"  # 수수료구분코드 (0:전부 미포함, 1:매수제비용만 포함, 2:매수제비용+매도제비용)
+    trx_tp_code: str = (
+        "2"  # 처리구분코드 (1:외화잔고, 2:주식잔고상세, 3:주식잔고(국가별), 9:당일실현손익)
+    )
+    cmsn_tp_code: str = (
+        "2"  # 수수료구분코드 (0:전부 미포함, 1:매수제비용만 포함, 2:매수제비용+매도제비용)
+    )
     won_fcurr_tp_code: str = "2"  # 원화외화구분코드 (1:원화, 2:외화)
     dpnt_bal_tp_code: str = "0"  # 소수점잔고구분코드 (0:전체, 1:일반, 2:소수점)
-    
+
     def to_request_data(self) -> Dict[str, Any]:
         """API 요청 데이터 형식으로 변환"""
         return {
@@ -97,6 +119,6 @@ class OverseasBalanceRequest(BalanceRequest):
                 "TrxTpCode": self.trx_tp_code,
                 "CmsnTpCode": self.cmsn_tp_code,
                 "WonFcurrTpCode": self.won_fcurr_tp_code,
-                "DpntBalTpCode": self.dpnt_bal_tp_code
+                "DpntBalTpCode": self.dpnt_bal_tp_code,
             }
         }
