@@ -117,7 +117,7 @@ class OverseasBalanceRequest(BalanceRequest):
         """API 요청 데이터 형식으로 변환"""
         return {
             "In": {
-                "TrxTpCode": self.order_type,
+                "TrxTpCode": self.balance_type,
                 "CmsnTpCode": self.cmsn_type,
                 "WonFcurrTpCode": self.won_fcurr_type,
                 "DpntBalTpCode": self.decimal_balance_type,

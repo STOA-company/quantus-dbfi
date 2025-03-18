@@ -1,15 +1,18 @@
 import logging
-from typing import Any, Dict, Optional
+from datetime import datetime
+from typing import Any, Dict
+
+from .data.domestic.request import *
+from .data.overseas.request import *
+from .oauth import OAuth
+from .service.chart import *
+from .service.quote import *
+from .service.trading import *
 
 
 class BaseAPI:
-    """DB금융투자 API의 기본 클래스"""
-
     def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO):
         self._setup_logging(log_level)
-
-        from .oauth import OAuth
-
         self.auth = OAuth(appkey=app_key, appsecretkey=app_secret_key)
         self.logger.info("DB증권 API SDK가 초기화되었습니다.")
 
@@ -31,17 +34,36 @@ class BaseAPI:
         self.logger.setLevel(log_level)
 
     def close(self):
-        """세션 종료"""
         try:
             self.auth.revoke_token()
             self.logger.info("DB증권 API 세션이 종료되었습니다.")
         except Exception as e:
             self.logger.error(f"세션 종료 중 오류 발생: {str(e)}")
 
+    def _execute_service(
+        self,
+        service_getter,
+        method_name: str,
+        request=None,
+        use_cont: bool = False,
+        cont_yn: str = "N",
+        cont_key: str = None,
+    ):
+        service = service_getter()
+        method = getattr(service, method_name)
+        if request is not None:
+            if use_cont:
+                return method(request, cont_yn=cont_yn, cont_key=cont_key)
+            else:
+                return method(request)
+        else:
+            if use_cont:
+                return method(cont_yn=cont_yn, cont_key=cont_key)
+            else:
+                return method()
+
 
 class DomesticAPI(BaseAPI):
-    """국내 주식 API"""
-
     def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO):
         super().__init__(app_key, app_secret_key, log_level)
         self._trading_service = None
@@ -50,24 +72,20 @@ class DomesticAPI(BaseAPI):
 
     def _get_trading_service(self):
         if self._trading_service is None:
-            from .service.trading import DomesticTradingService
-
             self._trading_service = DomesticTradingService(auth=self.auth)
         return self._trading_service
 
     def _get_quote_service(self):
         if self._quote_service is None:
-            from .service.quote import DomesticQuoteService
-
             self._quote_service = DomesticQuoteService(auth=self.auth)
         return self._quote_service
 
     def _get_chart_service(self):
         if self._chart_service is None:
-            from .service.chart import DomesticChartService
-
             self._chart_service = DomesticChartService(auth=self.auth)
         return self._chart_service
+
+    # ===== 매매 관련 =====
 
     def buy(
         self,
@@ -79,9 +97,6 @@ class DomesticAPI(BaseAPI):
         loan_date: str = "00000000",  # 일반주문
         order_condition: str = "0",  # 없음
     ) -> Dict[str, Any]:
-        """국내 주식 매수 주문"""
-        from .data.domestic.request import DomesticOrderRequest
-
         order_request = DomesticOrderRequest(
             stock_code=stock_code,
             quantity=quantity,
@@ -92,9 +107,9 @@ class DomesticAPI(BaseAPI):
             loan_date=loan_date,
             order_condition=order_condition,
         )
-
-        service = self._get_trading_service()
-        return service.place_order(order_request)
+        return self._execute_service(
+            self._get_trading_service, "place_order", request=order_request
+        )
 
     def sell(
         self,
@@ -106,9 +121,6 @@ class DomesticAPI(BaseAPI):
         loan_date: str = "00000000",  # 일반주문
         order_condition: str = "0",  # 없음
     ) -> Dict[str, Any]:
-        """국내 주식 매도 주문"""
-        from .data.domestic.request import DomesticOrderRequest
-
         order_request = DomesticOrderRequest(
             stock_code=stock_code,
             quantity=quantity,
@@ -119,20 +131,17 @@ class DomesticAPI(BaseAPI):
             loan_date=loan_date,
             order_condition=order_condition,
         )
-
-        service = self._get_trading_service()
-        return service.place_order(order_request)
+        return self._execute_service(
+            self._get_trading_service, "place_order", request=order_request
+        )
 
     def cancel(self, order_no: int, stock_code: str, quantity: int) -> Dict[str, Any]:
-        """국내 주식 주문 취소"""
-        from .data.domestic.request import DomesticCancelOrderRequest
-
         cancel_request = DomesticCancelOrderRequest(
             original_order_no=order_no, stock_code=stock_code, quantity=quantity
         )
-
-        service = self._get_trading_service()
-        return service.cancel_order(cancel_request)
+        return self._execute_service(
+            self._get_trading_service, "cancel_order", request=cancel_request
+        )
 
     def get_transaction_history(
         self,
@@ -143,19 +152,19 @@ class DomesticAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """국내 거래 내역 조회"""
-        from .data.domestic.request import DomesticTransactionHistoryRequest
-
         request = DomesticTransactionHistoryRequest(
-            exec_yn=execution_status,
-            bns_tp_code=order_type,
-            isu_tp_code=stock_type,
-            qry_tp=query_type,
+            execution_status=execution_status,
+            order_type=order_type,
+            stock_type=stock_type,
+            query_type=query_type,
         )
-
-        service = self._get_trading_service()
-        return service.get_transaction_history(
-            request, cont_yn=cont_yn, cont_key=cont_key
+        return self._execute_service(
+            self._get_trading_service,
+            "get_transaction_history",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
         )
 
     def get_stock_balance(
@@ -164,18 +173,25 @@ class DomesticAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """국내 주식 잔고 조회"""
-        from .data.domestic.request import DomesticBalanceRequest
-
-        request = DomesticBalanceRequest(qry_tp_code=query_type)
-
-        service = self._get_trading_service()
-        return service.get_balance(request, cont_yn=cont_yn, cont_key=cont_key)
+        request = DomesticBalanceRequest(query_type=query_type)
+        return self._execute_service(
+            self._get_trading_service,
+            "get_balance",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     def get_deposit(self, cont_yn: str = "N", cont_key: str = None):
-        """국내 예수금 조회"""
-        service = self._get_trading_service()
-        return service.get_deposit(cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_trading_service,
+            "get_deposit",
+            request=None,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     def get_able_order_quantity(
         self,
@@ -185,19 +201,19 @@ class DomesticAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """국내 주문 가능 수량 조회"""
-        from .data.domestic.request import DomesticAbleOrderQuantityRequest
-
         request = DomesticAbleOrderQuantityRequest(
-            stock_code=stock_code, price=price, bns_tp_code=order_type
+            stock_code=stock_code, price=price, order_type=order_type
+        )
+        return self._execute_service(
+            self._get_trading_service,
+            "get_able_order_quantity",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
         )
 
-        service = self._get_trading_service()
-        return service.get_able_order_quantity(
-            request, cont_yn=cont_yn, cont_key=cont_key
-        )
-
-    # ===== 시세 관련 메소드 =====
+    # ===== 시세 관련 =====
 
     def get_stock_tickers(
         self,
@@ -205,13 +221,15 @@ class DomesticAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """국내 주식 티커 조회"""
-        from .data.domestic.request import DomesticQuoteRequest
-
         request = DomesticQuoteRequest(market_type=market_code)
-
-        service = self._get_quote_service()
-        return service.get_stock_tickers(request, cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_quote_service,
+            "get_stock_tickers",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     def get_stock_price(
         self,
@@ -220,15 +238,17 @@ class DomesticAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """국내 주식 시세 조회"""
-        from .data.domestic.request import DomesticQuoteRequest
-
         request = DomesticQuoteRequest(market_type=market_code, stock_code=stock_code)
+        return self._execute_service(
+            self._get_quote_service,
+            "get_stock_price",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
-        service = self._get_quote_service()
-        return service.get_stock_price(request, cont_yn=cont_yn, cont_key=cont_key)
-
-    # ===== 차트 관련 메소드 =====
+    # ===== 차트 관련 =====
 
     def get_minute_chart(
         self,
@@ -240,9 +260,6 @@ class DomesticAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """국내 주식 분봉 차트 조회"""
-        from .data.domestic.request import DomesticMinuteChartRequest
-
         request = DomesticMinuteChartRequest(
             market_type=market_code,
             adjust_price_yn=adjust_price_yn,
@@ -250,9 +267,14 @@ class DomesticAPI(BaseAPI):
             start_date=start_date,
             time_interval=time_interval,
         )
-
-        service = self._get_chart_service()
-        return service.get_minute_chart(request, cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_chart_service,
+            "get_minute_chart",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     def get_daily_chart(
         self,
@@ -264,9 +286,6 @@ class DomesticAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """국내 주식 일봉 차트 조회"""
-        from .data.domestic.request import DomesticDailyChartRequest
-
         request = DomesticDailyChartRequest(
             market_type=market_code,
             adjust_price_yn=adjust_price_yn,
@@ -274,9 +293,14 @@ class DomesticAPI(BaseAPI):
             start_date=start_date,
             end_date=end_date,
         )
-
-        service = self._get_chart_service()
-        return service.get_daily_chart(request, cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_chart_service,
+            "get_daily_chart",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     def get_weekly_chart(
         self,
@@ -288,9 +312,6 @@ class DomesticAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """국내 주식 주봉 차트 조회"""
-        from .data.domestic.request import DomesticWeeklyChartRequest
-
         request = DomesticWeeklyChartRequest(
             market_type=market_code,
             adjust_price_yn=adjust_price_yn,
@@ -299,9 +320,14 @@ class DomesticAPI(BaseAPI):
             end_date=end_date,
             period="W",  # 주봉
         )
-
-        service = self._get_chart_service()
-        return service.get_weekly_chart(request, cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_chart_service,
+            "get_weekly_chart",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     def get_monthly_chart(
         self,
@@ -313,9 +339,6 @@ class DomesticAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """국내 주식 월봉 차트 조회"""
-        from .data.domestic.request import DomesticMonthlyChartRequest
-
         request = DomesticMonthlyChartRequest(
             market_type=market_code,
             adjust_price_yn=adjust_price_yn,
@@ -324,9 +347,14 @@ class DomesticAPI(BaseAPI):
             end_date=end_date,
             period="M",  # 월봉
         )
-
-        service = self._get_chart_service()
-        return service.get_monthly_chart(request, cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_chart_service,
+            "get_monthly_chart",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     def get_yearly_chart(
         self,
@@ -338,9 +366,6 @@ class DomesticAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """국내 주식 년봉 차트 조회"""
-        from .data.domestic.request import DomesticWeeklyChartRequest
-
         request = DomesticWeeklyChartRequest(
             market_type=market_code,
             adjust_price_yn=adjust_price_yn,
@@ -349,14 +374,17 @@ class DomesticAPI(BaseAPI):
             end_date=end_date,
             period="Y",  # 년봉
         )
-
-        service = self._get_chart_service()
-        return service.get_yearly_chart(request, cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_chart_service,
+            "get_yearly_chart",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
 
 class OverseasAPI(BaseAPI):
-    """해외 주식 API"""
-
     def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO):
         super().__init__(app_key, app_secret_key, log_level)
         self._trading_service = None
@@ -365,26 +393,20 @@ class OverseasAPI(BaseAPI):
 
     def _get_trading_service(self):
         if self._trading_service is None:
-            from .service.trading import OverseasTradingService
-
             self._trading_service = OverseasTradingService(auth=self.auth)
         return self._trading_service
 
     def _get_quote_service(self):
         if self._quote_service is None:
-            from .service.quote import OverseasQuoteService
-
             self._quote_service = OverseasQuoteService(auth=self.auth)
         return self._quote_service
 
     def _get_chart_service(self):
         if self._chart_service is None:
-            from .service.chart import OverseasChartService
-
             self._chart_service = OverseasChartService(auth=self.auth)
         return self._chart_service
 
-    # ===== 매매 관련 메소드 =====
+    # ===== 매매 관련 =====
 
     def buy(
         self,
@@ -396,9 +418,6 @@ class OverseasAPI(BaseAPI):
         trade_type: str = "0",  # 주문
         original_order_no: int = 0,  # 신규주문
     ) -> Dict[str, Any]:
-        """해외 주식 매수 주문"""
-        from .data.overseas.request import OverseasOrderRequest
-
         order_request = OverseasOrderRequest(
             stock_code=stock_code,
             quantity=quantity,
@@ -409,9 +428,9 @@ class OverseasAPI(BaseAPI):
             trade_type=trade_type,
             original_order_no=original_order_no,
         )
-
-        service = self._get_trading_service()
-        return service.place_order(order_request)
+        return self._execute_service(
+            self._get_trading_service, "place_order", request=order_request
+        )
 
     def sell(
         self,
@@ -423,9 +442,6 @@ class OverseasAPI(BaseAPI):
         trade_type: str = "0",  # 주문
         original_order_no: int = 0,  # 신규주문
     ) -> Dict[str, Any]:
-        """해외 주식 매도 주문"""
-        from .data.overseas.request import OverseasOrderRequest
-
         order_request = OverseasOrderRequest(
             stock_code=stock_code,
             quantity=quantity,
@@ -436,20 +452,17 @@ class OverseasAPI(BaseAPI):
             trade_type=trade_type,
             original_order_no=original_order_no,
         )
-
-        service = self._get_trading_service()
-        return service.place_order(order_request)
+        return self._execute_service(
+            self._get_trading_service, "place_order", request=order_request
+        )
 
     def cancel(self, order_no: int, stock_code: str, quantity: int) -> Dict[str, Any]:
-        """해외 주식 주문 취소"""
-        from .data.overseas.request import OverseasCancelOrderRequest
-
         cancel_request = OverseasCancelOrderRequest(
             original_order_no=order_no, stock_code=stock_code, quantity=quantity
         )
-
-        service = self._get_trading_service()
-        return service.cancel_order(cancel_request)
+        return self._execute_service(
+            self._get_trading_service, "cancel_order", request=cancel_request
+        )
 
     def get_transaction_history(
         self,
@@ -466,16 +479,10 @@ class OverseasAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """해외 거래 내역 조회"""
-        from .data.overseas.request import OverseasTransactionHistoryRequest
-
-        # 해외 거래내역 조회는 날짜 지정이 없으면 당일로 설정
-        if not qry_srt_dt and not qry_end_dt:
-            from datetime import datetime
-
+        if not start_date and not end_date:
             today = datetime.now().strftime("%Y%m%d")
-            qry_srt_dt = today
-            qry_end_dt = today
+            start_date = today
+            end_date = today
 
         request = OverseasTransactionHistoryRequest(
             start_date=start_date,
@@ -489,10 +496,13 @@ class OverseasAPI(BaseAPI):
             opposite_order_yn=opposite_order_yn,
             won_fcurr_type=won_fcurr_type,
         )
-
-        service = self._get_trading_service()
-        return service.get_transaction_history(
-            request, cont_yn=cont_yn, cont_key=cont_key
+        return self._execute_service(
+            self._get_trading_service,
+            "get_transaction_history",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
         )
 
     def get_stock_balance(
@@ -504,23 +514,30 @@ class OverseasAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """해외 주식 잔고 조회"""
-        from .data.overseas.request import OverseasBalanceRequest
-
         request = OverseasBalanceRequest(
             balance_type=balance_type,
             cmsn_type=cmsn_type,
             won_fcurr_type=won_fcurr_type,
             decimal_balance_type=decimal_balance_type,
         )
-
-        service = self._get_trading_service()
-        return service.get_balance(request, cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_trading_service,
+            "get_balance",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     def get_deposit(self, cont_yn: str = "N", cont_key: str = None):
-        """해외 예수금 조회"""
-        service = self._get_trading_service()
-        return service.get_deposit(cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_trading_service,
+            "get_deposit",
+            request=None,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     def get_able_order_quantity(
         self,
@@ -531,22 +548,22 @@ class OverseasAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """해외 주문 가능 수량 조회"""
-        from .data.overseas.request import OverseasAbleOrderQuantityRequest
-
         request = OverseasAbleOrderQuantityRequest(
             stock_code=stock_code,
             price=price,
             order_type=trx_type,
             won_fcurr_type=won_fcurr_type,
         )
-
-        service = self._get_trading_service()
-        return service.get_able_order_quantity(
-            request, cont_yn=cont_yn, cont_key=cont_key
+        return self._execute_service(
+            self._get_trading_service,
+            "get_able_order_quantity",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
         )
 
-    # ===== 시세 관련 메소드 =====
+    # ===== 시세 관련  =====
 
     def get_stock_tickers(
         self,
@@ -554,13 +571,15 @@ class OverseasAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """해외 주식 티커 조회"""
-        from .data.overseas.request import OverseasStockTickersRequest
-
         request = OverseasStockTickersRequest(market_code=market_code)
-
-        service = self._get_quote_service()
-        return service.get_stock_tickers(request, cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_quote_service,
+            "get_stock_tickers",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     def get_stock_price(
         self,
@@ -569,15 +588,17 @@ class OverseasAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """해외 주식 시세 조회"""
-        from .data.overseas.request import OverseasQuoteRequest
-
         request = OverseasQuoteRequest(market_code=market_code, stock_code=stock_code)
+        return self._execute_service(
+            self._get_quote_service,
+            "get_stock_price",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
-        service = self._get_quote_service()
-        return service.get_stock_price(request, cont_yn=cont_yn, cont_key=cont_key)
-
-    # ===== 차트 관련 메소드 =====
+    # ===== 차트 관련 =====
 
     def get_minute_chart(
         self,
@@ -592,9 +613,6 @@ class OverseasAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """해외 주식 분봉 차트 조회"""
-        from .data.overseas.request import OverseasMinuteChartRequest
-
         request = OverseasMinuteChartRequest(
             market_type=market_code,
             adjust_price_yn=adjust_price_yn,
@@ -605,9 +623,14 @@ class OverseasAPI(BaseAPI):
             end_date=end_date,
             chart_interval_code=time_interval,
         )
-
-        service = self._get_chart_service()
-        return service.get_minute_chart(request, cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_chart_service,
+            "get_minute_chart",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     def get_daily_chart(
         self,
@@ -619,9 +642,6 @@ class OverseasAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """해외 주식 일봉 차트 조회"""
-        from .data.overseas.request import OverseasDailyChartRequest
-
         request = OverseasDailyChartRequest(
             adjust_price_yn=adjust_price_yn,
             market_type=market_code,
@@ -629,9 +649,14 @@ class OverseasAPI(BaseAPI):
             start_date=start_date,
             end_date=end_date,
         )
-
-        service = self._get_chart_service()
-        return service.get_daily_chart(request, cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_chart_service,
+            "get_daily_chart",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     def get_weekly_chart(
         self,
@@ -643,9 +668,6 @@ class OverseasAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """해외 주식 주봉 차트 조회"""
-        from .data.overseas.request import OverseasWeeklyChartRequest
-
         request = OverseasWeeklyChartRequest(
             market_type=market_code,
             use_adjust_price=use_adjust_price,
@@ -654,9 +676,14 @@ class OverseasAPI(BaseAPI):
             end_date=end_date,
             period_div_code="W",  # 주봉
         )
-
-        service = self._get_chart_service()
-        return service.get_weekly_chart(request, cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_chart_service,
+            "get_weekly_chart",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     def get_monthly_chart(
         self,
@@ -668,9 +695,6 @@ class OverseasAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """해외 주식 월봉 차트 조회"""
-        from .data.overseas.request import OverseasWeeklyChartRequest
-
         request = OverseasWeeklyChartRequest(
             market_type=market_code,
             use_adjust_price=use_adjust_price,
@@ -679,9 +703,14 @@ class OverseasAPI(BaseAPI):
             end_date=end_date,
             period_div_code="M",  # 월봉
         )
-
-        service = self._get_chart_service()
-        return service.get_monthly_chart(request, cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_chart_service,
+            "get_monthly_chart",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     def get_yearly_chart(
         self,
@@ -693,9 +722,6 @@ class OverseasAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
-        """해외 주식 년봉 차트 조회"""
-        from .data.overseas.request import OverseasWeeklyChartRequest
-
         request = OverseasWeeklyChartRequest(
             market_type=market_code,
             use_adjust_price=use_adjust_price,
@@ -704,6 +730,11 @@ class OverseasAPI(BaseAPI):
             end_date=end_date,
             period_div_code="Y",  # 년봉
         )
-
-        service = self._get_chart_service()
-        return service.get_yearly_chart(request, cont_yn=cont_yn, cont_key=cont_key)
+        return self._execute_service(
+            self._get_chart_service,
+            "get_yearly_chart",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )

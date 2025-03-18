@@ -48,7 +48,7 @@ class OverseasChartService(BaseService, IChartService):
     def get_minute_chart(
         self, request: OverseasMinuteChartRequest, cont_yn="N", cont_key=None, **kwargs
     ) -> Dict[str, Any]:
-        endpoint = "/api/v1/quote/overseas-chart/min"
+        endpoint = "/api/v1/quote/overseas-stock/chart/min"
         data = request.to_request_data()
         return self._request(
             "POST", endpoint, data=data, cont_yn=cont_yn, cont_key=cont_key, **kwargs
@@ -57,7 +57,7 @@ class OverseasChartService(BaseService, IChartService):
     def get_daily_chart(
         self, request: OverseasDailyChartRequest, cont_yn="N", cont_key=None, **kwargs
     ) -> Dict[str, Any]:
-        endpoint = "/api/v1/quote/overseas-chart/day"
+        endpoint = "/api/v1/quote/overseas-stock/chart/day"
         data = request.to_request_data()
         return self._request(
             "POST", endpoint, data=data, cont_yn=cont_yn, cont_key=cont_key, **kwargs
@@ -66,7 +66,7 @@ class OverseasChartService(BaseService, IChartService):
     def get_weekly_chart(
         self, request: OverseasWeeklyChartRequest, cont_yn="N", cont_key=None, **kwargs
     ) -> Dict[str, Any]:
-        endpoint = "/api/v1/quote/overseas-chart/week"
+        endpoint = "/api/v1/quote/overseas-stock/chart/week"
         data = request.to_request_data()
         return self._request(
             "POST", endpoint, data=data, cont_yn=cont_yn, cont_key=cont_key, **kwargs
@@ -75,7 +75,7 @@ class OverseasChartService(BaseService, IChartService):
     def get_monthly_chart(
         self, request: OverseasMonthlyChartRequest, cont_yn="N", cont_key=None, **kwargs
     ) -> Dict[str, Any]:
-        endpoint = "/api/v1/quote/overseas-chart/month"
+        endpoint = "/api/v1/quote/overseas-stock/chart/month"
         data = request.to_request_data()
         return self._request(
             "POST", endpoint, data=data, cont_yn=cont_yn, cont_key=cont_key, **kwargs
