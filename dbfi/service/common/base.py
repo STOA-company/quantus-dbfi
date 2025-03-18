@@ -1,9 +1,11 @@
-import time
-import random
 import logging
-from typing import Dict, Any, Optional
+import random
+import time
+from typing import Any, Dict, Optional
+
 import requests
-from src.oauth import OAuth
+
+from dbfi.oauth import OAuth
 
 
 class BaseService:

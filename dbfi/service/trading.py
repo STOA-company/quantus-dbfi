@@ -1,11 +1,25 @@
-from typing import Dict, Any
-from src.service.common.base import BaseService
-from src.service.common.interfaces import IInquiryService
-from src.data.domestic.request import *
-from src.data.overseas.request import *
+from dbfi.data.domestic.request import *
+from dbfi.data.overseas.request import *
+from dbfi.oauth import OAuth
+from dbfi.service.common.base import BaseService
+from dbfi.service.common.interfaces import ITradingService
 
 
-class DomesticInquiryService(BaseService, IInquiryService):
+class DomesticTradingService(BaseService, ITradingService):
+    def place_order(
+        self, order_request: DomesticOrderRequest, **kwargs
+    ) -> Dict[str, Any]:
+        endpoint = "/api/v1/trading/kr-stock/order"
+        data = order_request.to_request_data()
+        return self._request("POST", endpoint, data=data, **kwargs)
+
+    def cancel_order(
+        self, cancel_request: DomesticCancelOrderRequest, **kwargs
+    ) -> Dict[str, Any]:
+        endpoint = "/api/v1/trading/kr-stock/order-cancel"
+        data = cancel_request.to_request_data()
+        return self._request("POST", endpoint, data=data, **kwargs)
+
     def get_transaction_history(
         self,
         request: DomesticTransactionHistoryRequest,
@@ -58,7 +72,21 @@ class DomesticInquiryService(BaseService, IInquiryService):
         )
 
 
-class OverseasInquiryService(BaseService, IInquiryService):
+class OverseasTradingService(BaseService, ITradingService):
+    def place_order(
+        self, order_request: OverseasOrderRequest, **kwargs
+    ) -> Dict[str, Any]:
+        endpoint = "/api/v1/trading/overseas-stock/order"
+        data = order_request.to_request_data()
+        return self._request("POST", endpoint, data=data, **kwargs)
+
+    def cancel_order(
+        self, cancel_request: OverseasCancelOrderRequest, **kwargs
+    ) -> Dict[str, Any]:
+        endpoint = "/api/v1/trading/overseas-stock/order"
+        data = cancel_request.to_request_data()
+        return self._request("POST", endpoint, data=data, **kwargs)
+
     def get_transaction_history(
         self,
         request: OverseasTransactionHistoryRequest,
