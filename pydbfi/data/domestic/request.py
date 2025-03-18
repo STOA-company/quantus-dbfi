@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-from pydbfi.data.request import *
+from ..request import *
 
 
 @dataclass

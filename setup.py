@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pydbfi",
-    version="0.1.0",
+    version="0.1.3", 
     author="ivk",
     author_email="leorivk@gmail.com",
     description="DB증권 API Python SDK",

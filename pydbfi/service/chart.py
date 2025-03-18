@@ -1,9 +1,9 @@
 from typing import Any, Dict
 
-from dbfi.data.domestic.request import *
-from dbfi.data.overseas.request import *
-from dbfi.service.common.base import BaseService
-from dbfi.service.common.interfaces import IChartService
+from ..data.domestic.request import *
+from ..data.overseas.request import *
+from ..service.common.base import BaseService
+from ..service.common.interfaces import IChartService
 
 
 class DomesticChartService(BaseService, IChartService):

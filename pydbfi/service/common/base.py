@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from dbfi.oauth import OAuth
+from ...oauth import OAuth
 
 
 class BaseService:
