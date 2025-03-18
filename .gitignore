@@ -175,3 +175,6 @@ cython_debug/
 
 # ipynb
 *.ipynb
+
+# test
+*_test.py
