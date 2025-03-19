@@ -32,7 +32,7 @@ class DomesticOrderRequest(OrderRequest):
 
 
 @dataclass
-class DomesticCancelOrderRequest(OrderRequest):
+class DomesticCancelOrderRequest:
     original_order_no: int
     stock_code: str
     quantity: int

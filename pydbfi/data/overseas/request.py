@@ -28,7 +28,7 @@ class OverseasOrderRequest(OrderRequest):
 
 
 @dataclass
-class OverseasCancelOrderRequest(OrderRequest):
+class OverseasCancelOrderRequest:
     original_order_no: int
     stock_code: str
     quantity: int
