@@ -201,6 +201,7 @@ class DomesticAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
+        stock_code = 'A' + stock_code
         request = DomesticAbleOrderQuantityRequest(
             stock_code=stock_code, price=price, order_type=order_type
         )
