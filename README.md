@@ -9,7 +9,7 @@ pip install pydbfi
 ## 초기화
 
 ```python
-from dbfi import DBFI
+from pydbfi import DBFI
 
 dbfi = DBFI(app_key="YOUR_APP_KEY", app_secret_key="YOUR_SECRET_KEY")
 ```
