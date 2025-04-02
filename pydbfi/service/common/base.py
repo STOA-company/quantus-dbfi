@@ -9,7 +9,7 @@ from ...oauth import OAuth
 
 
 class BaseService:
-    BASE_URL = "https://openapi.db-fi.com:8443"
+    BASE_URL = "https://openapi.dbsec.co.kr:8443"
 
     def __init__(self, auth: OAuth):
         self.auth = auth
@@ -96,10 +96,40 @@ class BaseService:
                 self.logger.debug(f"Response status: {response.status_code}")
                 self.logger.debug(f"Response headers: {response.headers}")
 
-                if "application/json" in response.headers.get("Content-Type", ""):
-                    return response.json()
+                cont_yn = response.headers.get("cont_yn", "N")
+                cont_key = response.headers.get("cont_key", "")
+                cont_cnt = kwargs.get("cont_cnt", 0) # 최대 연속 조회 가능 회수 20회
+                if cont_yn == "Y" and cont_key != "" and cont_cnt < 20:
+                    # 연속 조회 여부 판단"
+                    kwargs.update(
+                        outputs = kwargs.get("outputs", []) + [
+                            response.json() if "application/json" in response.headers.get("Content-Type", "") else {"text": response.text}
+                        ],
+                        cont_cnt = kwargs.get("cont_cnt", 0) + 1
+                    )
+                    time.sleep(1) # 연속 조회를 위한 1초 대기
+                    return self._request(
+                        method=method,
+                        endpoint=endpoint,
+                        params=params,
+                        content_type=content_type,
+                        cont_yn=cont_yn,
+                        cont_key=cont_key,
+                        max_retries=max_retries,
+                        initial_backoff=initial_backoff,
+                        max_backoff=max_backoff,
+                        **kwargs
+                    )
+                
+                if kwargs.get("outputs"):
+                    return kwargs.get("outputs", []) + [
+                        response.json() if "application/json" in response.headers.get("Content-Type", "") else {"text": response.text}
+                    ]
+                else:
+                    if "application/json" in response.headers.get("Content-Type", ""):
+                        return response.json()
 
-                return {"text": response.text}
+                    return {"text": response.text}
 
             except requests.RequestException as e:
                 if not (

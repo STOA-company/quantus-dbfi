@@ -11,9 +11,9 @@ from .service.trading import *
 
 
 class BaseAPI:
-    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO):
+    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
         self._setup_logging(log_level)
-        self.auth = OAuth(appkey=app_key, appsecretkey=app_secret_key)
+        self.auth = OAuth(appkey=app_key, appsecretkey=app_secret_key, headers=headers)
         self.logger.info("DB증권 API SDK가 초기화되었습니다.")
 
         try:
@@ -64,8 +64,8 @@ class BaseAPI:
 
 
 class DomesticAPI(BaseAPI):
-    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO):
-        super().__init__(app_key, app_secret_key, log_level)
+    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
+        super().__init__(app_key, app_secret_key, log_level, headers)
         self._trading_service = None
         self._quote_service = None
         self._chart_service = None
@@ -169,7 +169,7 @@ class DomesticAPI(BaseAPI):
 
     def get_stock_balance(
         self,
-        query_type: str = "0",  # 조회구분코드 (0:전체, 1:비상장제외, 2:비상장,코넥스,kotc 제외)
+        query_type: str = "2",  # 조회구분코드 (0:전체, 1:비상장제외, 2:비상장,코넥스,kotc 제외)
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
@@ -386,8 +386,8 @@ class DomesticAPI(BaseAPI):
 
 
 class OverseasAPI(BaseAPI):
-    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO):
-        super().__init__(app_key, app_secret_key, log_level)
+    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
+        super().__init__(app_key, app_secret_key, log_level, headers)
         self._trading_service = None
         self._quote_service = None
         self._chart_service = None
@@ -509,9 +509,9 @@ class OverseasAPI(BaseAPI):
     def get_stock_balance(
         self,
         balance_type: str = "2",  # 처리구분코드 (1:외화잔고, 2:주식잔고상세, 3:주식잔고(국가별), 9:당일실현손익)
-        cmsn_type: str = "2",  # 수수료구분코드 (0:전부 미포함, 1:매수제비용만 포함, 2:매수제비용+매도제비용)
+        cmsn_type: str = "1",  # 수수료구분코드 (0:전부 미포함, 1:매수제비용만 포함, 2:매수제비용+매도제비용)
         won_fcurr_type: str = "2",  # 원화외화구분코드 (1:원화, 2:외화)
-        decimal_balance_type: str = "0",  # 소수점잔고구분코드 (0:전체, 1:일반, 2:소수점)
+        decimal_balance_type: str = "1",  # 소수점잔고구분코드 (0:전체, 1:일반, 2:소수점)
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:

@@ -9,7 +9,7 @@ class OAuth:
     _instance = None
     _lock = threading.Lock()
 
-    BASE_URL = "https://openapi.db-fi.com:8443"
+    BASE_URL = "https://openapi.dbsec.co.kr:8443"
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -18,7 +18,7 @@ class OAuth:
                     cls._instance = super(OAuth, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, appkey: str, appsecretkey: str):
+    def __init__(self, appkey: str, appsecretkey: str, headers: dict = {}):
         if hasattr(self, "_initialized") and self._initialized:
             return
 
@@ -29,6 +29,7 @@ class OAuth:
         self.token_type = None
         self.logger = logging.getLogger(__name__)
         self._initialized = True
+        self.headers = headers
 
     def get_token(self) -> str:
         if not self.is_token_valid():
@@ -101,4 +102,4 @@ class OAuth:
             raise
 
     def get_auth_header(self) -> dict:
-        return {"authorization": f"{self.token_type} {self.get_token()}"}
+        return {"authorization": f"{self.token_type} {self.get_token()}", **self.headers}
