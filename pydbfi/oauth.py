@@ -4,6 +4,24 @@ from datetime import datetime, timedelta
 
 import requests
 
+class TokenRequestError(Exception):
+    """API 토큰 요청 과정에서 발생한 오류를 처리하기 위한 커스텀 예외"""
+    def __init__(self, original_error, status_code=None, error_message=None, response_body=None):
+        self.original_error = original_error
+        self.status_code = status_code
+        self.error_message = error_message
+        self.response_body = response_body
+        
+        # 예외 정보를 객체 형태로 args에 저장
+        error_info = {
+            "original_error": original_error,
+            "status_code": status_code,
+            "error_message": error_message,
+            "response_body": response_body
+        }
+        
+        # args 튜플의 첫 번째 요소로 객체 전달
+        super().__init__(error_info)
 
 class OAuth:
     _instance = None
@@ -19,7 +37,10 @@ class OAuth:
         return cls._instance
 
     def __init__(self, appkey: str, appsecretkey: str, headers: dict = {}):
-        if hasattr(self, "_initialized") and self._initialized:
+        if hasattr(self, "appkey") and appkey == self.appkey \
+            and hasattr(self, "appsecretkey") and appsecretkey == self.appsecretkey \
+                and self.is_token_valid():
+            # 동일한 API Key쌍 및 유효한 token에 대해서 재발급 생략
             return
 
         self.appkey = appkey
@@ -66,9 +87,26 @@ class OAuth:
             self.logger.info(
                 f"New access token obtained. Valid until: {self.expire_in}"
             )
-        except requests.RequestException as e:
-            self.logger.error(f"Failed to obtain access token: {str(e)}")
-            raise
+        except requests.exceptions.RequestException as e:
+            status_code = None
+            error_message = str(e)
+            response_body = None
+            
+            # response 객체가 있는 경우 상태 코드와 응답 내용 추출
+            if hasattr(e, 'response') and e.response is not None:
+                status_code = e.response.status_code
+                
+                # 응답 본문 저장
+                try:
+                    response_body = e.response.json()
+                    error_message = response_body.get('error_description', response_body.get('error', str(e)))
+                except ValueError:
+                    # JSON이 아닌 경우 텍스트 내용 사용
+                    response_body = e.response.text
+                    error_message = response_body
+            
+            self.logger.error(f"Failed to obtain access token: Status code: {status_code}, Error: {error_message}")
+            raise TokenRequestError(e, status_code, error_message, response_body)
 
     def revoke_token(self) -> dict:
         if not self.token:
@@ -99,7 +137,7 @@ class OAuth:
             self.logger.error(f"Failed to revoke token: {str(e)}")
             if hasattr(e, "response") and e.response:
                 self.logger.error(f"Response: {e.response.text}")
-            raise
+            raise e
 
     def get_auth_header(self) -> dict:
         return {"authorization": f"{self.token_type} {self.get_token()}", **self.headers}

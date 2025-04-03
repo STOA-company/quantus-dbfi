@@ -21,6 +21,7 @@ class BaseAPI:
             self.logger.info(f"토큰 발급 성공 (만료: {self.auth.expire_in})")
         except Exception as e:
             self.logger.error(f"토큰 발급 실패: {str(e)}")
+            raise e
 
     def _setup_logging(self, log_level):
         self.logger = logging.getLogger("db-trading-sdk")
