@@ -103,6 +103,15 @@ class DBFI:
             return self.overseas.get_stock_price(**kwargs)
         else:
             raise ValueError("region은 'domestic' 또는 'overseas'여야 합니다.")
+        
+    def get_order_book(self, region: str, **kwargs):
+        region = region.lower()
+        if region == 'domestic':
+            return self.domestic.get_order_book(**kwargs)
+        elif region == 'overseas':
+            return self.overseas.get_order_book(**kwargs)
+        else:
+            raise ValueError("region은 'domestic' 또는 'overseas'여야 합니다.")
     
     def get_minute_chart(self, region: str, **kwargs):
         region = region.lower()

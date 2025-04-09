@@ -249,6 +249,23 @@ class DomesticAPI(BaseAPI):
             cont_yn=cont_yn,
             cont_key=cont_key,
         )
+        
+    def get_order_book(
+        self,
+        stock_code: str,
+        market_code: str = "J",  # 시장분류코드 (J:주식, E:ETF, EN:ETN)
+        cont_yn: str = "N",
+        cont_key: str = None,
+    ) -> Dict[str, Any]:
+        request = DomesticQuoteRequest(market_type=market_code, stock_code=stock_code)
+        return self._execute_service(
+            self._get_quote_service,
+            "get_order_book",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
 
     # ===== 차트 관련 =====
 
@@ -594,6 +611,23 @@ class OverseasAPI(BaseAPI):
         return self._execute_service(
             self._get_quote_service,
             "get_stock_price",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
+        
+    def get_order_book(
+        self,
+        stock_code: str,
+        market_code: str = "FY",  # 시장 코드 (FY:뉴욕, FN:나스닥, FA:아멕스)
+        cont_yn: str = "N",
+        cont_key: str = None,
+    ) -> Dict[str, Any]:
+        request = OverseasQuoteRequest(market_code=market_code, stock_code=stock_code)
+        return self._execute_service(
+            self._get_quote_service,
+            "get_order_book",
             request=request,
             use_cont=True,
             cont_yn=cont_yn,
