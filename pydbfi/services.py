@@ -54,14 +54,42 @@ def get_balance_overseas(dbfi: DBFI):
     )
     balances = {"주문가능현금": float(able_order_quantity["Out"]["AstkOrdAbleAmt"])} # 주문가능달러
     
-    if not isinstance(overseas_balance, dict) or overseas_balance.get("rsp_cd") != "00000":
-        # 보유종목 없음
-        stocks = []
-        balances["유가평가금액합계"] = 0
-    else:
+    if isinstance(overseas_balance, dict) and overseas_balance.get("rsp_cd") == "00000" and overseas_balance.get("Out"):
         # TODO :: 보유종목 잔고 체크
         stocks = []
-        balances["유가평가금액합계"] = 0
+        balance = overseas_balance["Out"]
+        balances.update(
+            {
+                "예수금": balance["Dps"],
+                "익일정산금액": balance["MnyoutAbleAmt"],
+                "가수도정산금액": balance["MnyoutAbleAmt"],
+                "평가금": balance["AssetAmtTotamt"],
+                "평가손익률": float(balance["ErnRat"]) * 100,
+                "매입금액합계": balance["PchsAmt"],
+                "유가평가금액합계": balance["BalEvalAmt"],
+                "손익금액합계": balance["EvalPnlAmt"],
+                # TODO :: 당일 매매금액
+                # "금일매수금액": 0,
+                # "금일매도금액": 0,
+            }
+        )
+    else:
+        # 보유종목 없음
+        stocks = {}
+        balances.update(
+            {
+                "예수금": 0,
+                "익일정산금액": 0,
+                "가수도정산금액": 0,
+                "평가금": 0,
+                "평가손익률": 0,
+                "매입금액합계": 0,
+                "유가평가금액합계": 0,
+                "손익금액합계": 0,
+                "금일매수금액": 0,
+                "금일매도금액": 0,
+            }
+        )
         
     return dict(
         stocks=stocks,
