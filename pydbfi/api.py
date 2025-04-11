@@ -1,6 +1,7 @@
 import logging
-from datetime import datetime
-from typing import Any, Dict
+import pytz
+from datetime import datetime, timedelta
+from typing import Any, Dict, Literal
 
 from .data.domestic.request import *
 from .data.overseas.request import *
@@ -65,6 +66,9 @@ class BaseAPI:
 
 
 class DomesticAPI(BaseAPI):
+    MARKET_CODE: Literal["J", "E", "EN"] # 국내 시장분류코드 (J:주식, E:ETF, EN:ETN)
+    ORDER_TYPE: Literal["0", "1", "2"] # 국내 매매구분 (0:전체, 1:매도, 2:매수)
+    
     def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
         super().__init__(app_key, app_secret_key, log_level, headers)
         self._trading_service = None
@@ -198,7 +202,7 @@ class DomesticAPI(BaseAPI):
         self,
         stock_code: str,
         price: float,
-        order_type: str = "2",  # 매매구분 (1:매도, 2:매수)
+        order_type: str,  # 매매구분 (1:매도, 2:매수)
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
@@ -404,6 +408,9 @@ class DomesticAPI(BaseAPI):
 
 
 class OverseasAPI(BaseAPI):
+    MARKET_CODE: Literal["NY", "NA", "AM"] # 미국 시장 코드 (NY:뉴욕, NA:나스닥, AM:아멕스)
+    ORDER_TYPE: Literal["0", "1", "2"] # 미국 매매구분 (0:전체, 1:매도, 2:매수)
+    
     def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
         super().__init__(app_key, app_secret_key, log_level, headers)
         self._trading_service = None
@@ -498,10 +505,11 @@ class OverseasAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
+        # TODO :: 날짜 조정 필요, 국가 기준 확립 필요
         if not start_date and not end_date:
-            today = datetime.now().strftime("%Y%m%d")
-            start_date = today
-            end_date = today
+            now = datetime.now(pytz.timezone('Asia/Seoul'))
+            start_date = (now - timedelta(days=0 if now.hour >= 22 else 1)).strftime("%Y%m%d")
+            end_date = now.strftime("%Y%m%d")
 
         request = OverseasTransactionHistoryRequest(
             start_date=start_date,
@@ -562,7 +570,7 @@ class OverseasAPI(BaseAPI):
         self,
         stock_code: str,
         price: float,
-        trx_type: str = "2",  # 처리구분코드 (1:매도, 2:매수)
+        order_type: str,  # 처리구분코드 (1:매도, 2:매수)
         won_fcurr_type: str = "2",  # 원화외화구분코드 (1:원화, 2:외화)
         cont_yn: str = "N",
         cont_key: str = None,
@@ -570,7 +578,7 @@ class OverseasAPI(BaseAPI):
         request = OverseasAbleOrderQuantityRequest(
             stock_code=stock_code,
             price=price,
-            order_type=trx_type,
+            order_type=order_type,
             won_fcurr_type=won_fcurr_type,
         )
         return self._execute_service(
