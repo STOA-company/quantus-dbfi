@@ -15,7 +15,7 @@ def get_balance_domestic(dbfi: DBFI):
             "매입금액": r["PchsAmt"],
             "평가금액": r["EvalAmt"],
             "평가손익": r["EvalPnlAmt"],
-            "평균단가": round(r["PchsAmt"] / r["BalQty0"], 2),
+            "평균단가": round(r["PchsAmt"] / r["BalQty0"], 2) if r["BalQty0"] > 0 else 0,
             "보유수량": r["BalQty0"],
             "현재가": r["NowPrc"],
             "전일대비등락율": float(dbfi.get_stock_price(region=region, stock_code=r['IsuNo'])["Out"]["PrdyCtrt"]),
@@ -43,7 +43,7 @@ def get_balance_domestic(dbfi: DBFI):
         balances=balances
     )
     
-def get_balance_overseas(dbfi: DBFI):
+def get_balance_overseas(dbfi: DBFI, is_integrated: bool = False):
     region = "overseas"
     # overseas_deposit = dbfi.get_deposit(region=region)
     overseas_balance = dbfi.get_stock_balance(region=region)
@@ -57,7 +57,7 @@ def get_balance_overseas(dbfi: DBFI):
     
     stocks = {}
     balances = {
-        "주문가능현금": float(able_order_quantity["Out"]["AstkOrdAbleAmt"]),
+        "주문가능현금": float(able_order_quantity["Out"]["AstkOrdAbleAmt0" if is_integrated else "AstkOrdAbleAmt"]),
         "평가손익률": 0,
         "매입금액합계": 0,
         "유가평가금액합계": 0,
@@ -111,7 +111,7 @@ def get_balance_overseas(dbfi: DBFI):
                     "매입금액합계": buy_amts,
                     "유가평가금액합계": eval_amts,
                     "손익금액합계": pnl_amts,
-                    "평가손익률": round((pnl_amts / buy_amts) * 100, 2) 
+                    "평가손익률": round((pnl_amts / buy_amts) * 100, 2) if buy_amts > 0 else 0
                 }
             )
         
