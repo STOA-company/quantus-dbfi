@@ -17,7 +17,7 @@ def get_balance_domestic(dbfi: DBFI):
             "평가손익": r["EvalPnlAmt"],
             "평균단가": round(r["PchsAmt"] / r["BalQty0"], 2) if r["BalQty0"] > 0 else 0,
             "보유수량": r["BalQty0"],
-            "현재가": r["NowPrc"],
+            "현재가": float(r["NowPrc"]),
             "전일대비등락율": float(dbfi.get_stock_price(region=region, stock_code=r['IsuNo'])["Out"]["PrdyCtrt"]),
             "country": "KR",
         } for _, r in enumerate(domestic_balance["Out1"])
