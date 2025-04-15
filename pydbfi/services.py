@@ -20,7 +20,7 @@ def get_balance_domestic(dbfi: DBFI):
             "현재가": float(r["NowPrc"]),
             "전일대비등락율": float(dbfi.get_stock_price(region=region, stock_code=r['IsuNo'])["Out"]["PrdyCtrt"]),
             "country": "KR",
-        } for _, r in enumerate(domestic_balance["Out1"])
+        } for _, r in enumerate(domestic_balance["Out1"]) if r["BalQty0"] > 0
     }
 
     deposit = domestic_deposit["Out1"]
