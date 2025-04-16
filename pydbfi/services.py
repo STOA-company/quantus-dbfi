@@ -134,19 +134,36 @@ def get_execute_amounts_overseas(
     start_date = _trading_datetime.strftime("%Y%m%d")
     trans_history = dbfi.get_transaction_history("overseas", start_date=start_date, end_date=end_date)
     
-    if trans_history["rsp_cd"] != "00000":
-        # 조회 실패
-        buy_exec_amts, sell_exec_amts = 0, 0
-    else:
-        df = pd.DataFrame(trans_history["Out"])
-        df["exec_dt"] = pd.to_datetime(df["AstkExecDttm"].str[:14])
-        exec_df = df[
-                (df["exec_dt"]>=datetime(year=_trading_datetime.year, month=_trading_datetime.month, day=_trading_datetime.day, hour=22)) # 전일 개장시간
-                & (df["exec_dt"]<=datetime(year=trading_datetime.year, month=trading_datetime.month, day=trading_datetime.day, hour=6)) # 익일 폐장시간
-            ]
-        buy_exec_amts, sell_exec_amts \
-            = exec_df[exec_df["AstkBnsTpCode"]=="2"]["WonAmt3"].sum(), exec_df[exec_df["AstkBnsTpCode"]=="1"]["WonAmt3"].sum() # 원화 환산 체결 금액
+    buy_exec_amts, sell_exec_amts = 0, 0
+    
+    if trans_history["rsp_cd"] == "00000":
+        # 전일 개장시간과 당일 폐장시간 설정
+        start_time = datetime(year=_trading_datetime.year, month=_trading_datetime.month, 
+                             day=_trading_datetime.day, hour=22)
+        end_time = datetime(year=trading_datetime.year, month=trading_datetime.month, 
+                           day=trading_datetime.day, hour=6)
+        
+        # 거래 내역 직접 순회하며 계산
+        for transaction in trans_history["Out"]:
+            # 날짜시간 파싱 (AstkExecDttm의 처음 14자리)
+            exec_dt_str = transaction["AstkExecDttm"][:14]
+            exec_dt = datetime(
+                year=int(exec_dt_str[0:4]),
+                month=int(exec_dt_str[4:6]),
+                day=int(exec_dt_str[6:8]),
+                hour=int(exec_dt_str[8:10]),
+                minute=int(exec_dt_str[10:12]),
+                second=int(exec_dt_str[12:14])
+            )
             
+            # 시간 범위 내 거래만 필터링
+            if start_time <= exec_dt <= end_time:
+                # 매수(2) 또는 매도(1) 금액 합산
+                if transaction["AstkBnsTpCode"] == "2":  # 매수
+                    buy_exec_amts += float(transaction["WonAmt3"])
+                elif transaction["AstkBnsTpCode"] == "1":  # 매도
+                    sell_exec_amts += float(transaction["WonAmt3"])
+    
     return dict(
         buy_exec_amts=buy_exec_amts,
         sell_exec_amts=sell_exec_amts,
