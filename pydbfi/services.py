@@ -1,5 +1,6 @@
 from .main import *
 import pandas as pd
+from datetime import datetime, timedelta
 
 def get_balance_domestic(dbfi: DBFI):
     region = "domestic"
@@ -55,14 +56,18 @@ def get_balance_overseas(dbfi: DBFI, is_integrated: bool = False):
         price=1
     )
     
-    stocks = {}
+    exec_amts = get_execute_amounts_overseas(dbfi, datetime.now(pytz.timezone('Asia/Seoul')))
     balances = {
         "주문가능현금": float(able_order_quantity["Out"]["AstkOrdAbleAmt0" if is_integrated else "AstkOrdAbleAmt"]),
         "평가손익률": 0,
         "매입금액합계": 0,
         "유가평가금액합계": 0,
         "손익금액합계": 0,
+        "금일매수금액": exec_amts["buy_exec_amts"],
+        "금일매도금액": exec_amts["sell_exec_amts"],
     }
+    
+    stocks = {}
     if isinstance(overseas_balance, dict) and overseas_balance.get("rsp_cd") == "00000":
         out2_data = overseas_balance.get("Out2", [])
         stocks = {
@@ -118,4 +123,31 @@ def get_balance_overseas(dbfi: DBFI, is_integrated: bool = False):
     return dict(
         stocks=stocks,
         balances=balances
+    )
+    
+def get_execute_amounts_overseas(
+    dbfi: DBFI,
+    trading_datetime: datetime
+):
+    _trading_datetime = trading_datetime - timedelta(days=1)
+    end_date = trading_datetime.strftime("%Y%m%d")
+    start_date = _trading_datetime.strftime("%Y%m%d")
+    trans_history = dbfi.get_transaction_history("overseas", start_date=start_date, end_date=end_date)
+    
+    if trans_history["rsp_cd"] != "00000":
+        # 조회 실패
+        buy_exec_amts, sell_exec_amts = 0, 0
+    else:
+        df = pd.DataFrame(trans_history["Out"])
+        df["exec_dt"] = pd.to_datetime(df["AstkExecDttm"].str[:14])
+        exec_df = df[
+                (df["exec_dt"]>=datetime(year=_trading_datetime.year, month=_trading_datetime.month, day=_trading_datetime.day, hour=22)) # 전일 개장시간
+                & (df["exec_dt"]<=datetime(year=trading_datetime.year, month=trading_datetime.month, day=trading_datetime.day, hour=6)) # 익일 폐장시간
+            ]
+        buy_exec_amts, sell_exec_amts \
+            = exec_df[exec_df["AstkBnsTpCode"]=="2"]["WonAmt3"].sum(), exec_df[exec_df["AstkBnsTpCode"]=="1"]["WonAmt3"].sum() # 원화 환산 체결 금액
+            
+    return dict(
+        buy_exec_amts=buy_exec_amts,
+        sell_exec_amts=sell_exec_amts,
     )
