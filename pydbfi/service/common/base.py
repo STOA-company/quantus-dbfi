@@ -116,6 +116,7 @@ class BaseService:
                         method=method,
                         endpoint=endpoint,
                         params=params,
+                        data=data,
                         content_type=content_type,
                         cont_yn=cont_yn,
                         cont_key=cont_key,
