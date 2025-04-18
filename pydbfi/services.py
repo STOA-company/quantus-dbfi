@@ -4,15 +4,14 @@ from datetime import datetime, timedelta
 
 def get_balance_domestic(dbfi: DBFI):
     region = "domestic"
-    domestic_deposit = dbfi.get_deposit(region=region)
     domestic_balance = dbfi.get_stock_balance(region=region)
     
+    out1_data = []
     if isinstance(domestic_balance, dict) and domestic_balance["rsp_cd"] == "00000":
         balance = domestic_balance["Out"]
         out1_data = domestic_balance["Out1"]
     elif isinstance(domestic_balance, list):
         balance = domestic_balance[0]["Out"]
-        out1_data = []
         for r in domestic_balance:
             if r["rsp_cd"] == "00000":
                 out1_data.extend(r["Out1"])
@@ -33,6 +32,7 @@ def get_balance_domestic(dbfi: DBFI):
         } for _, r in enumerate(out1_data) if r["BalQty0"] > 0
     }
 
+    domestic_deposit = dbfi.get_deposit(region=region)
     deposit = domestic_deposit["Out1"]
     balances = {
         "예수금": deposit["DpsBalAmt"],
@@ -80,7 +80,6 @@ def get_balance_overseas(dbfi: DBFI, is_integrated: bool = False):
     if isinstance(overseas_balance, dict) and overseas_balance.get("rsp_cd") == "00000":
         out2_data = overseas_balance.get("Out2", [])
     elif isinstance(overseas_balance, list):
-        out2_data = []
         for r in overseas_balance:
             if isinstance(r, dict) and r.get("rsp_cd") == "00000" and r.get("Out2"):
                 out2_data.extend(r.get("Out2"))
