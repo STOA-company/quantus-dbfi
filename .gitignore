@@ -178,3 +178,6 @@ cython_debug/
 
 # test
 *_test.py
+
+# MacOs
+.DS_Store

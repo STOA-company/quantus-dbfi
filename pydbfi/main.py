@@ -1,5 +1,5 @@
 import logging
-from pydbfi.api import *
+from .api import *
 
 class DBFI:
     """
@@ -15,9 +15,9 @@ class DBFI:
         # 세션 종료
         dbfi.close()
     """
-    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO):
-        self.domestic = DomesticAPI(app_key, app_secret_key, log_level)
-        self.overseas = OverseasAPI(app_key, app_secret_key, log_level)
+    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
+        self.domestic = DomesticAPI(app_key, app_secret_key, log_level, headers)
+        self.overseas = OverseasAPI(app_key, app_secret_key, log_level, headers)
     
     def close(self):
         self.domestic.close()
@@ -101,6 +101,15 @@ class DBFI:
             return self.domestic.get_stock_price(**kwargs)
         elif region == 'overseas':
             return self.overseas.get_stock_price(**kwargs)
+        else:
+            raise ValueError("region은 'domestic' 또는 'overseas'여야 합니다.")
+        
+    def get_order_book(self, region: str, **kwargs):
+        region = region.lower()
+        if region == 'domestic':
+            return self.domestic.get_order_book(**kwargs)
+        elif region == 'overseas':
+            return self.overseas.get_order_book(**kwargs)
         else:
             raise ValueError("region은 'domestic' 또는 'overseas'여야 합니다.")
     

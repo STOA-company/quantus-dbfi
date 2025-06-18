@@ -1,6 +1,7 @@
 import logging
-from datetime import datetime
-from typing import Any, Dict
+import pytz
+from datetime import datetime, timedelta
+from typing import Any, Dict, Literal
 
 from .data.domestic.request import *
 from .data.overseas.request import *
@@ -11,9 +12,9 @@ from .service.trading import *
 
 
 class BaseAPI:
-    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO):
+    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
         self._setup_logging(log_level)
-        self.auth = OAuth(appkey=app_key, appsecretkey=app_secret_key)
+        self.auth = OAuth(appkey=app_key, appsecretkey=app_secret_key, headers=headers)
         self.logger.info("DB증권 API SDK가 초기화되었습니다.")
 
         try:
@@ -21,6 +22,7 @@ class BaseAPI:
             self.logger.info(f"토큰 발급 성공 (만료: {self.auth.expire_in})")
         except Exception as e:
             self.logger.error(f"토큰 발급 실패: {str(e)}")
+            raise e
 
     def _setup_logging(self, log_level):
         self.logger = logging.getLogger("db-trading-sdk")
@@ -64,8 +66,11 @@ class BaseAPI:
 
 
 class DomesticAPI(BaseAPI):
-    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO):
-        super().__init__(app_key, app_secret_key, log_level)
+    MARKET_CODE: Literal["J", "E", "EN"] # 국내 시장분류코드 (J:주식, E:ETF, EN:ETN)
+    ORDER_TYPE: Literal["0", "1", "2"] # 국내 매매구분 (0:전체, 1:매도, 2:매수)
+    
+    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
+        super().__init__(app_key, app_secret_key, log_level, headers)
         self._trading_service = None
         self._quote_service = None
         self._chart_service = None
@@ -169,7 +174,7 @@ class DomesticAPI(BaseAPI):
 
     def get_stock_balance(
         self,
-        query_type: str = "0",  # 조회구분코드 (0:전체, 1:비상장제외, 2:비상장,코넥스,kotc 제외)
+        query_type: str = "2",  # 조회구분코드 (0:전체, 1:비상장제외, 2:비상장,코넥스,kotc 제외)
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
@@ -197,7 +202,7 @@ class DomesticAPI(BaseAPI):
         self,
         stock_code: str,
         price: float,
-        order_type: str = "2",  # 매매구분 (1:매도, 2:매수)
+        order_type: str,  # 매매구분 (1:매도, 2:매수)
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
@@ -243,6 +248,23 @@ class DomesticAPI(BaseAPI):
         return self._execute_service(
             self._get_quote_service,
             "get_stock_price",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
+        
+    def get_order_book(
+        self,
+        stock_code: str,
+        market_code: str = "J",  # 시장분류코드 (J:주식, E:ETF, EN:ETN)
+        cont_yn: str = "N",
+        cont_key: str = None,
+    ) -> Dict[str, Any]:
+        request = DomesticQuoteRequest(market_type=market_code, stock_code=stock_code)
+        return self._execute_service(
+            self._get_quote_service,
+            "get_order_book",
             request=request,
             use_cont=True,
             cont_yn=cont_yn,
@@ -386,8 +408,11 @@ class DomesticAPI(BaseAPI):
 
 
 class OverseasAPI(BaseAPI):
-    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO):
-        super().__init__(app_key, app_secret_key, log_level)
+    MARKET_CODE: Literal["NY", "NA", "AM"] # 미국 시장 코드 (NY:뉴욕, NA:나스닥, AM:아멕스)
+    ORDER_TYPE: Literal["0", "1", "2"] # 미국 매매구분 (0:전체, 1:매도, 2:매수)
+    
+    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
+        super().__init__(app_key, app_secret_key, log_level, headers)
         self._trading_service = None
         self._quote_service = None
         self._chart_service = None
@@ -480,10 +505,11 @@ class OverseasAPI(BaseAPI):
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
+        # TODO :: 날짜 조정 필요, 국가 기준 확립 필요
         if not start_date and not end_date:
-            today = datetime.now().strftime("%Y%m%d")
-            start_date = today
-            end_date = today
+            now = datetime.now(pytz.timezone('Asia/Seoul'))
+            start_date = (now - timedelta(days=0 if now.hour >= 22 else 1)).strftime("%Y%m%d")
+            end_date = now.strftime("%Y%m%d")
 
         request = OverseasTransactionHistoryRequest(
             start_date=start_date,
@@ -509,9 +535,9 @@ class OverseasAPI(BaseAPI):
     def get_stock_balance(
         self,
         balance_type: str = "2",  # 처리구분코드 (1:외화잔고, 2:주식잔고상세, 3:주식잔고(국가별), 9:당일실현손익)
-        cmsn_type: str = "2",  # 수수료구분코드 (0:전부 미포함, 1:매수제비용만 포함, 2:매수제비용+매도제비용)
+        cmsn_type: str = "1",  # 수수료구분코드 (0:전부 미포함, 1:매수제비용만 포함, 2:매수제비용+매도제비용)
         won_fcurr_type: str = "2",  # 원화외화구분코드 (1:원화, 2:외화)
-        decimal_balance_type: str = "0",  # 소수점잔고구분코드 (0:전체, 1:일반, 2:소수점)
+        decimal_balance_type: str = "1",  # 소수점잔고구분코드 (0:전체, 1:일반, 2:소수점)
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
@@ -544,7 +570,7 @@ class OverseasAPI(BaseAPI):
         self,
         stock_code: str,
         price: float,
-        trx_type: str = "2",  # 처리구분코드 (1:매도, 2:매수)
+        order_type: str,  # 처리구분코드 (1:매도, 2:매수)
         won_fcurr_type: str = "2",  # 원화외화구분코드 (1:원화, 2:외화)
         cont_yn: str = "N",
         cont_key: str = None,
@@ -552,7 +578,7 @@ class OverseasAPI(BaseAPI):
         request = OverseasAbleOrderQuantityRequest(
             stock_code=stock_code,
             price=price,
-            order_type=trx_type,
+            order_type=order_type,
             won_fcurr_type=won_fcurr_type,
         )
         return self._execute_service(
@@ -593,6 +619,23 @@ class OverseasAPI(BaseAPI):
         return self._execute_service(
             self._get_quote_service,
             "get_stock_price",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
+        
+    def get_order_book(
+        self,
+        stock_code: str,
+        market_code: str = "FY",  # 시장 코드 (FY:뉴욕, FN:나스닥, FA:아멕스)
+        cont_yn: str = "N",
+        cont_key: str = None,
+    ) -> Dict[str, Any]:
+        request = OverseasQuoteRequest(market_code=market_code, stock_code=stock_code)
+        return self._execute_service(
+            self._get_quote_service,
+            "get_order_book",
             request=request,
             use_cont=True,
             cont_yn=cont_yn,
