@@ -7,6 +7,16 @@ def get_balance_domestic(dbfi: DBFI):
     domestic_balance = dbfi.get_stock_balance(region=region)
     
     out1_data = []
+    balance = {
+        "DpsastAmt": "0",
+        "TotErnrat": "0",
+        "TotBuyAmt": "0",
+        "TotEvalAmt": "0",
+        "TotEvalPnlAmt": "0",
+        "ThdayBuyAmt": "0",
+        "ThdaySellAmt": "0",
+        "Dps2": "0",
+    }
     if isinstance(domestic_balance, dict) and domestic_balance["rsp_cd"] == "00000":
         balance = domestic_balance["Out"]
         out1_data = domestic_balance["Out1"]
