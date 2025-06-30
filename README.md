@@ -63,6 +63,10 @@ print(result)
 result = dbfi.get_stock_balance(region="overseas", balance_type="2")
 print(result)
 
+# 국내 선물옵션 잔고 조회
+result = dbfi.get_domestic_futures_balance()
+print(result)
+
 # 국내 예수금 조회
 result = dbfi.get_deposit(region="domestic")
 print(result)
@@ -119,4 +123,5 @@ dbfi.close()
 - 취소 : 3회
 - 체결 내역 및 거래 내역 조회 : 2회
 - 주문 가능 수량 및 주식 잔고 조회 : 2회
+- 국내 선물옵션 잔고 조회 : 2회
 - 계좌 예수금 조회 : 1회

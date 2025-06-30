@@ -190,3 +190,12 @@ class DomesticMonthlyChartRequest(ChartRequest):
                 "InputPeriodDivCode": self.period,
             }
         }
+
+
+@dataclass
+class DomesticFuturesBalanceRequest:
+    """국내 선물옵션 잔고 조회 요청 데이터 클래스"""
+    
+    def to_request_data(self) -> Dict[str, Any]:
+        """API 요청 데이터 형식으로 변환"""
+        return {"In": {}}

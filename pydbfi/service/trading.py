@@ -136,3 +136,34 @@ class OverseasTradingService(BaseService, ITradingService):
         return self._request(
             "POST", endpoint, cont_yn=cont_yn, cont_key=cont_key, **kwargs
         )
+
+
+class DomesticFuturesTradingService(BaseService, ITradingService):
+    def get_balance(
+        self,
+        request: DomesticFuturesBalanceRequest,
+        cont_yn: str = "N",
+        cont_key: str = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """국내 선물옵션 잔고 조회"""
+        endpoint = "/api/v1/trading/kr-futureoption/inquiry/balance"
+        data = request.to_request_data()
+        return self._request(
+            "POST", endpoint, data=data, cont_yn=cont_yn, cont_key=cont_key, **kwargs
+        )
+
+    def cancel_order(self, *args, **kwargs):
+        raise NotImplementedError("국내 선물옵션 취소 미구현")
+
+    def get_able_order_quantity(self, *args, **kwargs):
+        raise NotImplementedError("국내 선물옵션 주문가능수량 미구현")
+
+    def get_deposit(self, *args, **kwargs):
+        raise NotImplementedError("국내 선물옵션 예수금 미구현")
+
+    def get_transaction_history(self, *args, **kwargs):
+        raise NotImplementedError("국내 선물옵션 거래내역 미구현")
+
+    def place_order(self, *args, **kwargs):
+        raise NotImplementedError("국내 선물옵션 주문 미구현")

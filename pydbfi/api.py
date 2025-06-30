@@ -782,3 +782,30 @@ class OverseasAPI(BaseAPI):
             cont_yn=cont_yn,
             cont_key=cont_key,
         )
+
+
+class DomesticFuturesAPI(BaseAPI):
+    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
+        super().__init__(app_key, app_secret_key, log_level, headers)
+        self._trading_service = None
+
+    def _get_trading_service(self):
+        if self._trading_service is None:
+            self._trading_service = DomesticFuturesTradingService(auth=self.auth)
+        return self._trading_service
+
+    def get_futures_balance(
+        self,
+        cont_yn: str = "N",
+        cont_key: str = None,
+    ) -> Dict[str, Any]:
+        """국내 선물옵션 잔고 조회"""
+        request = DomesticFuturesBalanceRequest()
+        return self._execute_service(
+            self._get_trading_service,
+            "get_balance",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
