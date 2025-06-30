@@ -12,16 +12,21 @@ class DBFI:
         # 해외 매수 주문 실행
         dbfi.buy(region="overseas", stock_code="AAPL", quantity=5, price=150.0)
         
+        # 국내 선물옵션 잔고 조회
+        dbfi.get_domestic_futures_balance()
+        
         # 세션 종료
         dbfi.close()
     """
     def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
         self.domestic = DomesticAPI(app_key, app_secret_key, log_level, headers)
         self.overseas = OverseasAPI(app_key, app_secret_key, log_level, headers)
+        self.domestic_futures = DomesticFuturesAPI(app_key, app_secret_key, log_level, headers)
     
     def close(self):
         self.domestic.close()
         self.overseas.close()
+        self.domestic_futures.close()
     
     def buy(self, region: str, **kwargs):
         region = region.lower()
@@ -157,3 +162,7 @@ class DBFI:
             return self.overseas.get_yearly_chart(**kwargs)
         else:
             raise ValueError("region은 'domestic' 또는 'overseas'여야 합니다.")
+    
+    def get_domestic_futures_balance(self, **kwargs):
+        """국내 선물옵션 잔고 조회"""
+        return self.domestic_futures.get_futures_balance(**kwargs)
