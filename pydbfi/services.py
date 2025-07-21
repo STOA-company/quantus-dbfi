@@ -15,22 +15,27 @@ def get_balance_domestic(dbfi: DBFI):
         for r in domestic_balance:
             if r["rsp_cd"] == "00000":
                 out1_data.extend(r["Out1"])
-
-    stocks = {
-        _: {
-            "종목코드": r['IsuNo'][1:],
-            "종목명": r["IsuNm"],
-            "평가손익률": float(r['Ernrat']) * 100,
-            "매입금액": r["PchsAmt"],
-            "평가금액": r["EvalAmt"],
-            "평가손익": r["EvalPnlAmt"],
-            "평균단가": round(r["PchsAmt"] / r["BalQty0"], 2) if r["BalQty0"] > 0 else 0,
-            "보유수량": r["BalQty0"],
-            "현재가": float(r["NowPrc"]),
-            "전일대비등락율": float(dbfi.get_stock_price(region=region, stock_code=r['IsuNo'])["Out"]["PrdyCtrt"]),
-            "country": "KR",
-        } for _, r in enumerate(out1_data) if r["BalQty0"] > 0
-    }
+    
+    stocks = {}
+    for i, r in enumerate(out1_data):
+        if r["BalQty0"] > 0:
+            try:
+                previous_ror = float(dbfi.get_stock_price(region=region, stock_code=r['IsuNo'])["Out"]["PrdyCtrt"])
+            except:
+                previous_ror = 0
+            stocks[i] = {
+                "종목코드": r['IsuNo'][1:],
+                "종목명": r["IsuNm"],
+                "평가손익률": float(r['Ernrat']) * 100,
+                "매입금액": r["PchsAmt"],
+                "평가금액": r["EvalAmt"],
+                "평가손익": r["EvalPnlAmt"],
+                "평균단가": round(r["PchsAmt"] / r["BalQty0"], 2) if r["BalQty0"] > 0 else 0,
+                "보유수량": r["BalQty0"],
+                "현재가": float(r["NowPrc"]),
+                "전일대비등락율": previous_ror,
+                "country": "KR",
+            }
 
     domestic_deposit = dbfi.get_deposit(region=region)
     deposit = domestic_deposit["Out1"]
