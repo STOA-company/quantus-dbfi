@@ -39,6 +39,16 @@ def get_balance_domestic(dbfi: DBFI):
 
     domestic_deposit = dbfi.get_deposit(region=region)
     deposit = domestic_deposit["Out1"]
+    # TODO :: 예외처리 필요
+    # if "Out1" in domestic_deposit:
+    #     deposit = domestic_deposit["Out1"]
+    # else:
+    #     # 예외케이스
+    #     return dict(
+    #         stocks=stocks,
+    #         balances=balances,
+    #         **domestic_deposit
+    #     )
     balances = {
         "예수금": deposit["DpsBalAmt"],
         "익일정산금액": deposit["PrsmptDpsD1"],
@@ -55,7 +65,8 @@ def get_balance_domestic(dbfi: DBFI):
     
     return dict(
         stocks=stocks,
-        balances=balances
+        balances=balances,
+        **domestic_deposit
     )
     
 def get_balance_overseas(dbfi: DBFI, is_integrated: bool = False):
