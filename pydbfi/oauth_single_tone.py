@@ -1,54 +1,8 @@
-import uuid
-import random
 import logging
-import requests
 import threading
 from datetime import datetime, timedelta
-from tenacity import retry, stop_after_attempt, wait_fixed
-from fake_useragent import UserAgent
 
-# user agent samples
-desktop_agents = [
-    # Chrome Windows
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
-    
-    # Chrome Mac
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-    
-    # Firefox Windows
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
-    
-    # Firefox Mac
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0",
-    
-    # Safari Mac
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
-    
-    # Edge Windows
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
-    
-    # Chrome Linux
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-]
-
-mobile_agents = [
-    # iPhone
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
-    
-    # Android Chrome
-    "Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.43 Mobile Safari/537.36",
-    "Mozilla/5.0 (Linux; Android 12; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.66 Mobile Safari/537.36",
-    
-    # Android Firefox
-    "Mozilla/5.0 (Android 13; Mobile; rv:121.0) Gecko/121.0 Firefox/121.0",
-]
-
+import requests
 
 class TokenRequestError(Exception):
     """API 토큰 요청 과정에서 발생한 오류를 처리하기 위한 커스텀 예외"""
@@ -70,42 +24,37 @@ class TokenRequestError(Exception):
         super().__init__(error_info)
 
 class OAuth:
+    _instance = None
+    _lock = threading.Lock()
+
     BASE_URL = "https://openapi.dbsec.co.kr:8443"
 
-    def __init__(self, appkey: str, appsecretkey: str, headers: dict = {}, **kwargs):
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super(OAuth, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self, appkey: str, appsecretkey: str, headers: dict = {}):
+        if hasattr(self, "appkey") and appkey == self.appkey \
+            and hasattr(self, "appsecretkey") and appsecretkey == self.appsecretkey \
+                and self.is_token_valid():
+            # 동일한 API Key쌍 및 유효한 token에 대해서 재발급 생략
+            return
+
         self.appkey = appkey
         self.appsecretkey = appsecretkey
         self.token = None
-        self.token_type = None
         self.expire_in = None
+        self.token_type = None
         self.logger = logging.getLogger(__name__)
         self._initialized = True
         self.headers = headers
-        self._lock = threading.Lock()  # 인스턴스별 락
-        
-        # init auth
-        self.init_auth(**kwargs)
-        
-    def init_auth(
-        self, 
-        token: str = None,
-        token_type: str = None,
-        expire_in: datetime = None
-    ):
-        if isinstance(token, str) and isinstance(token_type, str) and isinstance(expire_in, datetime):
-            self.token = token
-            self.token_type = token_type
-            self.expire_in = expire_in
-        
-        # init token
-        self.get_token()
-        
-        # init headers
-        self.get_auth_header()
 
     def get_token(self) -> str:
         if not self.is_token_valid():
-            with self._lock:
+            with OAuth._lock:
                 if not self.is_token_valid():
                     self.request_token()
         return self.token
@@ -115,11 +64,6 @@ class OAuth:
             return False
         return datetime.now() + timedelta(minutes=10) < self.expire_in
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_fixed(70), # 70초 고정 대기 후 재시도
-        reraise=True
-    )
     def request_token(self) -> None:
         headers = {"content-type": "application/x-www-form-urlencoded"}
         data = {
@@ -195,27 +139,5 @@ class OAuth:
                 self.logger.error(f"Response: {e.response.text}")
             raise e
 
-    def get_auth_header(self) -> dict:    
-        try:
-            user_agent = UserAgent().random
-        except Exception as e:
-            self.logger.error(f"UserAgent Error: {e}")
-            user_agent = random.choice(desktop_agents + mobile_agents)
-        
-        headers = {
-            'Authorization': f"{self.token_type} {self.get_token()}",
-            'User-Agent': user_agent,
-            'X-Session-ID': str(uuid.uuid4()),
-            'Accept': 'application/json',
-            'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
-            'Accept-Encoding': 'gzip, deflate',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-            'Connection': 'keep-alive',
-            **self.headers
-        }
-        # 20% 확률로 추가 헤더 삽입 (자연스러운 변화)
-        if random.random() < 0.2:
-            headers['X-Forwarded-For'] = f"10.0.{random.randint(1,254)}.{random.randint(1,254)}"
-        self.headers = headers        
-        return self.headers
+    def get_auth_header(self) -> dict:
+        return {"authorization": f"{self.token_type} {self.get_token()}", **self.headers}
