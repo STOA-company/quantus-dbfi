@@ -98,12 +98,21 @@ class OAuth:
             self.expire_in = expire_in
         
         # init token
-        self.get_token()
+        self.init_token()
+        
+    def init_token(self, is_refresh: bool = False):
+        # init token
+        self.get_token(is_refresh)
         
         # init headers
         self.get_auth_header()
 
-    def get_token(self) -> str:
+    def get_token(self, is_refresh: bool = False) -> str:
+        # 토큰 강제 업데이트
+        if is_refresh:
+            self.request_token()
+            return self.token
+        
         if not self.is_token_valid():
             with self._lock:
                 if not self.is_token_valid():
