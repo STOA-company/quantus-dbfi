@@ -1,7 +1,7 @@
 import logging
 from .api import *
 
-class DBFI:
+class DBFI():
     """
     사용 예:
         dbfi = DBFI(app_key="YOUR_APP_KEY", app_secret_key="YOUR_SECRET_KEY")
@@ -18,10 +18,27 @@ class DBFI:
         # 세션 종료
         dbfi.close()
     """
-    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
-        self.domestic = DomesticAPI(app_key, app_secret_key, log_level, headers)
-        self.overseas = OverseasAPI(app_key, app_secret_key, log_level, headers)
-        self.domestic_futures = DomesticFuturesAPI(app_key, app_secret_key, log_level, headers)
+    def __init__(
+        self, 
+        app_key: str, 
+        app_secret_key: str, 
+        log_level=logging.INFO, 
+        headers: dict = {}, 
+        token: str = None, 
+        token_type: str = None,
+        expire_in: datetime = None
+    ):
+        _oauth = OAuth(
+            appkey=app_key,
+            appsecretkey=app_secret_key,
+            headers=headers,
+            token=token,
+            token_type=token_type,
+            expire_in=expire_in,
+        )
+        self.domestic = DomesticAPI(_oauth, log_level)
+        self.overseas = OverseasAPI(_oauth, log_level)
+        self.domestic_futures = DomesticFuturesAPI(_oauth, log_level)
     
     def close(self):
         self.domestic.close()
