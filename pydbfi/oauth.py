@@ -5,7 +5,6 @@ import requests
 import threading
 from datetime import datetime, timedelta
 from tenacity import retry, stop_after_attempt, wait_fixed
-from fake_useragent import UserAgent
 
 # user agent samples
 desktop_agents = [
@@ -206,6 +205,7 @@ class OAuth:
 
     def get_auth_header(self) -> dict:    
         try:
+            from fake_useragent import UserAgent
             user_agent = UserAgent().random
         except Exception as e:
             self.logger.error(f"UserAgent Error: {e}")
