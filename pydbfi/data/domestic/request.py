@@ -10,6 +10,7 @@ class DomesticOrderRequest(OrderRequest):
     credit_type: str = "000"  # 기본값: 보통
     loan_date: str = "00000000"  # 기본값: 일반주문
     order_condition: str = "0"  # 기본값: 없음
+    trc_no: int = 1 # 주문시 거래소 구분용도로 사용 (1 : KRX) ※ 1로 고정하셔서 사용 부탁드립니다. (SOR 주문 구분은 추후 제공 예정)
 
     def to_request_data(self) -> Dict[str, Any]:
         if not self.stock_code.startswith("A") and len(self.stock_code) == 6:
@@ -27,6 +28,7 @@ class DomesticOrderRequest(OrderRequest):
                 "MgntrnCode": self.credit_type,  # 신용거래코드
                 "LoanDt": self.loan_date,  # 대출일
                 "OrdCndiTpCode": self.order_condition,  # 주문조건
+                "TrchNo": self.trc_no, # 트렌치번호
             }
         }
 
@@ -53,6 +55,8 @@ class DomesticTransactionHistoryRequest(TransactionHistoryRequest):
     order_type: str = "0"  # 매매구분 (0:전체, 1:매도, 2:매수)
     stock_type: str = "0"  # 종목구분 (0:전체)
     query_type: str = "0"  # 조회구분 (0:전체, 1:ELW, 2:ELW제외)
+    sor_tp_yn: str = "2" # SOR구분여부 (0 : N, 1 : Y, 2 : 전체)
+    trd_mkt_code: str = "0" # 거래시장코드 (0 : 전체, 1 : KRX, 2 : NXT)
 
     def to_request_data(self) -> Dict[str, Any]:
         return {
@@ -61,6 +65,8 @@ class DomesticTransactionHistoryRequest(TransactionHistoryRequest):
                 "BnsTpCode": self.order_type,
                 "IsuTpCode": self.stock_type,
                 "QryTp": self.query_type,
+                "TrdMktCode": self.trd_mkt_code,
+                "SorTpYn": self.sor_tp_yn,
             }
         }
 
@@ -94,9 +100,7 @@ class DomesticBalanceRequest(BalanceRequest):
 
 @dataclass
 class DomesticQuoteRequest(QuoteRequest):
-    market_type: str = (
-        "J"  # 입력 조건 시장 분류 코드 (J:주식, E:ELW, EN:ETN, U:업종&지수, W:ELW)
-    )
+    market_type: str = "UJ"  # 입력 조건 시장 분류 코드 (UJ:주식(통합), NJ:주식(NXT), E:ELW, EN:ETN, U:업종&지수, W:ELW)
     stock_code: Optional[str] = None  # 종목 코드 (업종(U) 선택 시 지수 코드)
 
     def to_request_data(self) -> Dict[str, Any]:
@@ -110,7 +114,7 @@ class DomesticQuoteRequest(QuoteRequest):
 
 @dataclass
 class DomesticMinuteChartRequest(ChartRequest):
-    market_type: str = "J"
+    market_type: str = "UJ"  # 입력 조건 시장 분류 코드 (UJ:주식(통합), NJ:주식(NXT), E:ELW, EN:ETN, U:업종&지수, W:ELW)
     adjust_price_yn: str = "0"  # 수정 주가 사용 여부 (0:사용, 1:미사용)
     stock_code: str = "0"  # 종목 코드
     start_date: str = "0"  # 조회일자 (YYYYMMDD)
@@ -130,7 +134,7 @@ class DomesticMinuteChartRequest(ChartRequest):
 
 @dataclass
 class DomesticDailyChartRequest(ChartRequest):
-    market_type: str = "J"
+    market_type: str = "UJ"  # 입력 조건 시장 분류 코드 (UJ:주식(통합), NJ:주식(NXT), E:ELW, EN:ETN, U:업종&지수, W:ELW)
     adjust_price_yn: str = "0"  # 수정 주가 사용 여부 (0:사용, 1:미사용)
     stock_code: str = "0"  # 종목 코드
     start_date: str = "0"  # 조회일자 (YYYYMMDD)
@@ -150,7 +154,7 @@ class DomesticDailyChartRequest(ChartRequest):
 
 @dataclass
 class DomesticWeeklyChartRequest(ChartRequest):
-    market_type: str = "J"
+    market_type: str = "UJ"  # 입력 조건 시장 분류 코드 (UJ:주식(통합), NJ:주식(NXT), E:ELW, EN:ETN, U:업종&지수, W:ELW)
     adjust_price_yn: str = "0"  # 수정 주가 사용 여부 (0:사용, 1:미사용)
     stock_code: str = "0"  # 종목 코드
     start_date: str = "0"  # 조회일자 (YYYYMMDD)
@@ -172,7 +176,7 @@ class DomesticWeeklyChartRequest(ChartRequest):
 
 @dataclass
 class DomesticMonthlyChartRequest(ChartRequest):
-    market_type: str = "J"
+    market_type: str = "UJ"  # 입력 조건 시장 분류 코드 (UJ:주식(통합), NJ:주식(NXT), E:ELW, EN:ETN, U:업종&지수, W:ELW)
     adjust_price_yn: str = "0"  # 수정 주가 사용 여부 (0:사용, 1:미사용)
     stock_code: str = "0"  # 종목 코드
     start_date: str = "0"  # 조회일자 (YYYYMMDD)
