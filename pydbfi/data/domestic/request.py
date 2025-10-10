@@ -57,8 +57,6 @@ class DomesticTransactionHistoryRequest(TransactionHistoryRequest):
     def to_request_data(self) -> Dict[str, Any]:
         return {
             "In": {
-                "SorTpYn": "2", # SOR여부 (0: N, 1: Y, 2: 전체); "2"으로 고정
-                "TrdMktCode": "0", # 거래시장코드 (0: 전체, 1: KRX, 2: NXT); "0"으로 고정
                 "ExecYn": self.execution_status,
                 "BnsTpCode": self.order_type,
                 "IsuTpCode": self.stock_type,
