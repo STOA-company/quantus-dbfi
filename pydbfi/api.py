@@ -12,17 +12,9 @@ from .service.trading import *
 
 
 class BaseAPI:
-    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
+    def __init__(self, auth: OAuth, log_level=logging.INFO):
         self._setup_logging(log_level)
-        self.auth = OAuth(appkey=app_key, appsecretkey=app_secret_key, headers=headers)
-        self.logger.info("DB증권 API SDK가 초기화되었습니다.")
-
-        try:
-            self.auth.get_token()
-            self.logger.info(f"토큰 발급 성공 (만료: {self.auth.expire_in})")
-        except Exception as e:
-            self.logger.error(f"토큰 발급 실패: {str(e)}")
-            raise e
+        self.auth = auth
 
     def _setup_logging(self, log_level):
         self.logger = logging.getLogger("db-trading-sdk")
@@ -69,8 +61,8 @@ class DomesticAPI(BaseAPI):
     MARKET_CODE: Literal["J", "E", "EN"] # 국내 시장분류코드 (J:주식, E:ETF, EN:ETN)
     ORDER_TYPE: Literal["0", "1", "2"] # 국내 매매구분 (0:전체, 1:매도, 2:매수)
     
-    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
-        super().__init__(app_key, app_secret_key, log_level, headers)
+    def __init__(self, auth: OAuth, log_level=logging.INFO):
+        super().__init__(auth, log_level)
         self._trading_service = None
         self._quote_service = None
         self._chart_service = None
@@ -411,8 +403,8 @@ class OverseasAPI(BaseAPI):
     MARKET_CODE: Literal["NY", "NA", "AM"] # 미국 시장 코드 (NY:뉴욕, NA:나스닥, AM:아멕스)
     ORDER_TYPE: Literal["0", "1", "2"] # 미국 매매구분 (0:전체, 1:매도, 2:매수)
     
-    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
-        super().__init__(app_key, app_secret_key, log_level, headers)
+    def __init__(self, auth: OAuth, log_level=logging.INFO):
+        super().__init__(auth, log_level)
         self._trading_service = None
         self._quote_service = None
         self._chart_service = None
@@ -785,8 +777,8 @@ class OverseasAPI(BaseAPI):
 
 
 class DomesticFuturesAPI(BaseAPI):
-    def __init__(self, app_key: str, app_secret_key: str, log_level=logging.INFO, headers: dict = {}):
-        super().__init__(app_key, app_secret_key, log_level, headers)
+    def __init__(self, auth: OAuth, log_level=logging.INFO):
+        super().__init__(auth, log_level)
         self._trading_service = None
 
     def _get_trading_service(self):
