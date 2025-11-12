@@ -164,6 +164,26 @@ class DomesticAPI(BaseAPI):
             cont_key=cont_key,
         )
 
+    def post_trading_history(
+        self,
+        qry_srt_dt: str,
+        qry_end_dt: str,
+        cont_yn: str = "N",
+        cont_key: str = None,
+    ) -> Dict[str, Any]:
+        request = DomesticPostTradingHistoryRequest(
+            QrySrtDt=qry_srt_dt,
+            QryEndDt=qry_end_dt
+        )
+        return self._execute_service(
+            self._get_trading_service,
+            "post_trading_history",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
+
     def get_stock_balance(
         self,
         query_type: str = "2",  # 조회구분코드 (0:전체, 1:비상장제외, 2:비상장,코넥스,kotc 제외)
