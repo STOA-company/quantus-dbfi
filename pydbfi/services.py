@@ -185,16 +185,3 @@ def get_execute_amounts_overseas(
         buy_exec_amts=buy_exec_amts,
         sell_exec_amts=sell_exec_amts,
     )
-
-def update_vip_blackswans(
-    dbfi: DBFI,
-    start_date: str,
-    end_date: str):
-
-    post_trading_history = dbfi.post_trading_history(
-        region="domestic",
-        qry_srt_dt=start_date,
-        qry_end_dt=end_date,
-    )
-
-    return post_trading_history
