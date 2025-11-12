@@ -14,6 +14,9 @@ class DBFI():
         
         # 국내 선물옵션 잔고 조회
         dbfi.get_domestic_futures_balance()
+
+        # VIP 블랙스완 업데이트
+        dbfi.update_vip_blackswans()
         
         # 세션 종료
         dbfi.close()
@@ -80,6 +83,13 @@ class DBFI():
             return self.overseas.get_transaction_history(**kwargs)
         else:
             raise ValueError("region은 'domestic' 또는 'overseas'여야 합니다.")
+    
+    def post_trading_history(self, region: str, **kwargs):
+        region = region.lower()
+        if region == 'domestic':
+            return self.domestic.post_trading_history(**kwargs)
+        else:
+            raise ValueError("region은 'domestic' 여야 합니다.")
     
     def get_stock_balance(self, region: str, **kwargs):
         region = region.lower()

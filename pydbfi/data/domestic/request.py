@@ -203,3 +203,29 @@ class DomesticFuturesBalanceRequest:
     def to_request_data(self) -> Dict[str, Any]:
         """API 요청 데이터 형식으로 변환"""
         return {"In": {}}
+
+@dataclass
+class DomesticPostTradingHistoryRequest:
+    """
+    QyTP : 0:전체, 1:입출금, 2:입출고, 3:매매, 4:이체/대체
+    QrySrtDt: 조회시작일자 (YYYYMMDD)
+    QryEndDt: 조회종료일자 (YYYYMMDD) , 최대 12개월 (선물 6개월) 까지 조회 가능
+    SrtNo: 시작번호 (기본값: 0, 조회구분 "0.전체"인 경우 CMA매매내역 생략시 1 입력)
+    IsuNo: 종목번호 ("" : 공백 입력시 전체 종목 조회, "A+종목번호" 입력시 특정 종목 내역 조회)
+    """
+    QrySrtDt: str  # 필수 매개변수
+    QryEndDt: str  # 필수 매개변수
+    QryTp: str = "0"  # 기본값 있는 매개변수
+    SrtNo: int = 0
+    IsuNo: str = ""
+
+    def to_request_data(self) -> Dict[str, Any]:
+        return {
+            "In": {
+                "QryTp": self.QryTp,
+                "QrySrtDt": self.QrySrtDt,
+                "QryEndDt": self.QryEndDt,
+                "SrtNo": self.SrtNo,
+                "IsuNo": self.IsuNo,
+            }
+        }

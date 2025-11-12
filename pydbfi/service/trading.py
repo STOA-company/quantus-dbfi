@@ -33,6 +33,20 @@ class DomesticTradingService(BaseService, ITradingService):
             "POST", endpoint, data=data, cont_yn=cont_yn, cont_key=cont_key, **kwargs
         )
 
+    def post_trading_history(
+        self,
+        request: DomesticPostTradingHistoryRequest,
+        cont_yn: str = "N",
+        cont_key: str = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """국내 주식 거래 내역 조회"""
+        endpoint = "/api/v1/trading/kr-stock/inquiry/trading-history"
+        data = request.to_request_data()
+        return self._request(
+            "POST", endpoint, data=data, cont_yn=cont_yn, cont_key=cont_key, **kwargs
+        ) 
+
     def get_able_order_quantity(
         self,
         request: DomesticAbleOrderQuantityRequest,
