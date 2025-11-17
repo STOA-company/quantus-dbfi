@@ -71,31 +71,29 @@ class TokenRequestError(Exception):
 class OAuth:
     BASE_URL = "https://openapi.dbsec.co.kr:8443"
 
-    def __init__(self, appkey: str, appsecretkey: str, headers: dict = {}, **kwargs):
+    def __init__(
+        self, 
+        appkey: str, 
+        appsecretkey: str, 
+        headers: dict = {}, 
+        token: str = None,
+        token_type: str = None,
+        expire_in: str = None,
+    ):
         self.appkey = appkey
         self.appsecretkey = appsecretkey
-        self.token = None
-        self.token_type = None
-        self.expire_in = None
+        self.token = token
+        self.token_type = token_type
+        self.expire_in = expire_in
         self.logger = logging.getLogger(__name__)
         self._initialized = True
         self.headers = headers
         self._lock = threading.Lock()  # 인스턴스별 락
         
         # init auth
-        self.init_auth(**kwargs)
+        self.init_auth()
         
-    def init_auth(
-        self, 
-        token: str = None,
-        token_type: str = None,
-        expire_in: datetime = None
-    ):
-        if isinstance(token, str) and isinstance(token_type, str) and isinstance(expire_in, datetime):
-            self.token = token
-            self.token_type = token_type
-            self.expire_in = expire_in
-        
+    def init_auth(self):
         # init token
         self.init_token()
         
@@ -119,7 +117,7 @@ class OAuth:
         return self.token
 
     def is_token_valid(self) -> bool:
-        if not self.token or not self.expire_in:
+        if not self.token or not self.token_type or not self.expire_in:
             return False
         return datetime.now() + timedelta(minutes=10) < self.expire_in
 
