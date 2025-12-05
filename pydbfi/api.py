@@ -184,6 +184,26 @@ class DomesticAPI(BaseAPI):
             cont_key=cont_key,
         )
 
+    def post_daily_trade_report(
+        self,
+        isu_no: str = "",
+        bns_dt: str = "",
+        cont_yn: str = "N",
+        cont_key: str = None,
+    ) -> Dict[str, Any]:
+        request = DomesticDailyTradeReportRequest(
+            isu_no=isu_no,
+            bns_dt=bns_dt,
+        )
+        return self._execute_service(
+            self._get_trading_service,
+            "post_daily_trade_report",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
+
     def get_stock_balance(
         self,
         query_type: str = "2",  # 조회구분코드 (0:전체, 1:비상장제외, 2:비상장,코넥스,kotc 제외)

@@ -90,6 +90,14 @@ class DBFI():
             return self.domestic.post_trading_history(**kwargs)
         else:
             raise ValueError("region은 'domestic' 여야 합니다.")
+
+    def post_daily_trade_report(self, region: str, **kwargs):
+        region = region.lower()
+        if region == 'domestic':
+            return self.domestic.post_daily_trade_report(**kwargs)
+        else:
+            raise ValueError("region은 'domestic' 여야 합니다.")
+
     
     def get_stock_balance(self, region: str, **kwargs):
         region = region.lower()
@@ -193,3 +201,4 @@ class DBFI():
     def get_domestic_futures_balance(self, **kwargs):
         """국내 선물옵션 잔고 조회"""
         return self.domestic_futures.get_futures_balance(**kwargs)
+

@@ -229,3 +229,20 @@ class DomesticPostTradingHistoryRequest:
                 "IsuNo": self.IsuNo,
             }
         }
+
+@dataclass
+class DomesticDailyTradeReportRequest:
+    """
+    IsuNo: 종목번호 ("" : 공백 입력시 전체 종목 조회, "A+종목번호" 입력시 특정 종목 내역 조회)
+    BnsDt: 거래일자 (YYYYMMDD)
+    """
+    isu_no: str = ""
+    bns_dt: str = ""
+
+    def to_request_data(self) -> Dict[str, Any]:
+        return {
+            "In": {
+                "IsuNo": self.isu_no,
+                "BnsDt": self.bns_dt,
+            }
+        }
