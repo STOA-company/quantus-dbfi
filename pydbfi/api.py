@@ -186,8 +186,8 @@ class DomesticAPI(BaseAPI):
 
     def post_daily_trade_report(
         self,
-        isu_no: str = "",
-        bns_dt: str = "",
+        bns_dt: str,  # 거래일자 (YYYYMMDD) - 필수
+        isu_no: str = "",  # 종목번호 (공백: 전체, "A+종목번호": 특정 종목)
         cont_yn: str = "N",
         cont_key: str = None,
     ) -> Dict[str, Any]:
@@ -563,6 +563,7 @@ class OverseasAPI(BaseAPI):
             cont_yn=cont_yn,
             cont_key=cont_key,
         )
+
 
     def get_stock_balance(
         self,

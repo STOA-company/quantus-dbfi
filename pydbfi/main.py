@@ -92,6 +92,13 @@ class DBFI():
             raise ValueError("region은 'domestic' 여야 합니다.")
 
     def post_daily_trade_report(self, region: str, **kwargs):
+        """국내 주식 일일 거래 보고서 조회
+        
+        Args:
+            region: 지역 ('domestic')
+            bns_dt: 거래일자 (YYYYMMDD) - 필수
+            **kwargs: isu_no (종목번호), cont_yn, cont_key 등
+        """
         region = region.lower()
         if region == 'domestic':
             return self.domestic.post_daily_trade_report(**kwargs)
