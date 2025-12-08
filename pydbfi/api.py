@@ -184,6 +184,26 @@ class DomesticAPI(BaseAPI):
             cont_key=cont_key,
         )
 
+    def post_daily_trade_report(
+        self,
+        bns_dt: str,  # 거래일자 (YYYYMMDD) - 필수
+        isu_no: str = "",  # 종목번호 (공백: 전체, "A+종목번호": 특정 종목)
+        cont_yn: str = "N",
+        cont_key: str = None,
+    ) -> Dict[str, Any]:
+        request = DomesticDailyTradeReportRequest(
+            isu_no=isu_no,
+            bns_dt=bns_dt,
+        )
+        return self._execute_service(
+            self._get_trading_service,
+            "post_daily_trade_report",
+            request=request,
+            use_cont=True,
+            cont_yn=cont_yn,
+            cont_key=cont_key,
+        )
+
     def get_stock_balance(
         self,
         query_type: str = "2",  # 조회구분코드 (0:전체, 1:비상장제외, 2:비상장,코넥스,kotc 제외)
@@ -543,6 +563,7 @@ class OverseasAPI(BaseAPI):
             cont_yn=cont_yn,
             cont_key=cont_key,
         )
+
 
     def get_stock_balance(
         self,
