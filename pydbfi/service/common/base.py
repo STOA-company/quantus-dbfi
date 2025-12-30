@@ -17,7 +17,7 @@ class BaseService:
         self.logger = logging.getLogger(__name__)
         
     @retry(
-        stop=stop_after_attempt(5),
+        stop=stop_after_attempt(3),
         wait=wait_exponential(
             multiplier=1,    # 기본 승수
             min=1,          # 최소 대기 시간 (초)
