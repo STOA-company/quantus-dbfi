@@ -122,5 +122,5 @@ class BaseService:
         except requests.RequestException as e:
             self.logger.error(f"API request failed: {str(e)}")
             if hasattr(e, "response") and e.response is not None:
-                self.logger.error(f"Response: {e.response.text}")
+                self.logger.error(f"Response({e.response.status_code}): {e.response.text}")
             raise e
