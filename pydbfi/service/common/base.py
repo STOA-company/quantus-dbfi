@@ -40,7 +40,10 @@ class BaseService:
     ) -> dict:
         url = f"{self.BASE_URL}{endpoint}"
 
-        request_headers = self.auth.get_auth_header()
+        request_headers = {
+            **(headers if isinstance(headers, dict) else {}),
+            **self.auth.get_auth_header()
+        }
         request_headers["Content-Type"] = content_type
 
         if cont_yn:
@@ -49,8 +52,6 @@ class BaseService:
         if cont_key:
             request_headers["cont_key"] = cont_key
 
-        if headers:
-            request_headers.update(headers)
 
         try:
             self.logger.debug(
@@ -76,9 +77,9 @@ class BaseService:
                 )
 
             if 500 <= response.status_code < 600:
-                if isinstance(response.text, dict) and response.text.get("rsp_cd") == "IGW00121":
-                    # token 유효성 만료: 토큰 재발급
-                    self.auth.request_token()
+                # token 유효성 만료: 토큰 재발급
+                time.sleep(1.5)
+                self.auth.request_token()
 
             response.raise_for_status()
 
@@ -96,7 +97,7 @@ class BaseService:
                     ],
                     cont_cnt = kwargs.get("cont_cnt", 0) + 1
                 )
-                time.sleep(1) # 연속 조회를 위한 1초 대기
+                time.sleep(1.5) # 연속 조회를 위한 1초 대기
                 return self._request(
                     method=method,
                     endpoint=endpoint,
