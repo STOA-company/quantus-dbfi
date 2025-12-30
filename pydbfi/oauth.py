@@ -210,6 +210,7 @@ class OAuth:
             user_agent = random.choice(desktop_agents + mobile_agents)
         
         headers = {
+            **self.headers,
             'Authorization': f"{self.token_type} {self.get_token()}",
             'User-Agent': user_agent,
             'X-Session-ID': str(uuid.uuid4()),
@@ -219,7 +220,6 @@ class OAuth:
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache',
             'Connection': 'keep-alive',
-            **self.headers
         }
         # 20% 확률로 추가 헤더 삽입 (자연스러운 변화)
         if random.random() < 0.2:
