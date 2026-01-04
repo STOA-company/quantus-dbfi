@@ -77,9 +77,10 @@ class BaseService:
                 )
 
             if 500 <= response.status_code < 600:
-                # token 유효성 만료: 토큰 재발급
-                time.sleep(1.5)
-                self.auth.request_token()
+                if isinstance(response.text, dict) and response.text.get("rsp_cd") == "IGW00121":
+                    # token 유효성 만료: 토큰 재발급
+                    time.sleep(1.5)
+                    self.auth.request_token()
 
             response.raise_for_status()
 
