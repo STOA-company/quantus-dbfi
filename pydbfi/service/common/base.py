@@ -124,8 +124,17 @@ class BaseService:
 
                 return {"text": response.text}
 
-        except requests.RequestException as e:
-            self.logger.error(f"API request failed: {str(e)}")
-            if hasattr(e, "response") and e.response is not None:
-                self.logger.error(f"Response({e.response.status_code}): {e.response.text}")
-            raise e
+        except Exception as e:
+            # 모든 예외 처리 (RequestException 포함)
+            error_type = type(e).__name__
+            
+            # RequestException 계열은 상세 정보 로깅
+            if isinstance(e, requests.RequestException):
+                self.logger.error(f"API request failed ({error_type}): {str(e)}")
+                if hasattr(e, "response") and e.response is not None:
+                    self.logger.error(f"Response({e.response.status_code}): {e.response.text}")
+            else:
+                # 기타 예외 (JSONDecodeError, KeyError 등)
+                self.logger.error(f"Unexpected error ({error_type}): {str(e)}", exc_info=True)
+            
+            raise
