@@ -185,3 +185,55 @@ def get_execute_amounts_overseas(
         buy_exec_amts=buy_exec_amts,
         sell_exec_amts=sell_exec_amts,
     )
+
+def get_stock_domestic(dbfi: DBFI):
+    region = "domestic"
+    domestic_balance = dbfi.get_stock_balance(region=region)
+    
+    out1_data = []
+    if isinstance(domestic_balance, dict) and domestic_balance["rsp_cd"] == "00000":
+        out1_data = domestic_balance["Out1"]
+    elif isinstance(domestic_balance, list):
+        for r in domestic_balance:
+            if r["rsp_cd"] == "00000":
+                out1_data.extend(r["Out1"])
+    return {
+        r['IsuNo'][1:]: {
+            "종목명": r["IsuNm"],
+            "평가손익률": float(r['Ernrat']) * 100,
+            "매입금액": r["PchsAmt"],
+            "평가금액": r["EvalAmt"],
+            "평가손익": r["EvalPnlAmt"],
+            "평균단가": round(r["PchsAmt"] / r["BalQty0"], 2) if r["BalQty0"] > 0 else 0,
+            "보유수량": int(r["BalQty0"]),
+            "주문가능수량": int(r["AbleQty"]),
+            "현재가": float(r["NowPrc"]),
+            "country": "KR",
+        } for r in out1_data if r["BalQty0"] > 0
+    }
+
+def get_stock_overseas(dbfi: DBFI):
+    region = "overseas"
+    overseas_balance = dbfi.get_stock_balance(region=region)
+    out2_data = []
+    if isinstance(overseas_balance, dict) and overseas_balance.get("rsp_cd") == "00000":
+        out2_data = overseas_balance.get("Out2", [])
+    elif isinstance(overseas_balance, list):
+        for r in overseas_balance:
+            if isinstance(r, dict) and r.get("rsp_cd") == "00000" and r.get("Out2"):
+                out2_data.extend(r.get("Out2"))
+    
+    return {
+        r['SymCode']: {
+            "종목명": r["AstkHanglIsuNm"],
+            "평가손익률": round(float(r['EvalPnlRat']), 2),
+            "매입금액": round(float(r["AstkBuyAmt"]), 2),
+            "평가금액": round(float(r["AstkEvalAmt"]), 2),
+            "평가손익": round(float(r["AstkEvalPnlAmt"]), 2),
+            "평균단가": round(float(r["AstkAvrPchsPrc"]), 2),
+            "보유수량": int(float(r["AstkExecBaseQty"])),
+            "주문가능수량": int(float(r["AstkOrdAbleQty"])),
+            "현재가": round(float(r["AstkNowPrc"]), 2),
+            "country": "US",
+        } for r in out2_data
+    }
