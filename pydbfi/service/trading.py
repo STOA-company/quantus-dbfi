@@ -6,16 +6,16 @@ from ..service.common.interfaces import ITradingService
 
 class DomesticTradingService(BaseService, ITradingService):
     def place_order(
-        self, order_request: DomesticOrderRequest, **kwargs
+        self, order_request: DomesticOrderRequest, use_nxt: bool = False, **kwargs
     ) -> Dict[str, Any]:
-        endpoint = "/api/v1/trading/kr-stock/order"
+        endpoint = "/api/v1/trading/kr-stock/order-nxt" if use_nxt else "/api/v1/trading/kr-stock/order"
         data = order_request.to_request_data()
         return self._request("POST", endpoint, data=data, **kwargs)
 
     def cancel_order(
-        self, cancel_request: DomesticCancelOrderRequest, **kwargs
+        self, cancel_request: DomesticCancelOrderRequest, use_nxt: bool = False, **kwargs
     ) -> Dict[str, Any]:
-        endpoint = "/api/v1/trading/kr-stock/order-cancel"
+        endpoint = "/api/v1/trading/kr-stock/order-cancel-nxt" if use_nxt else "/api/v1/trading/kr-stock/order-cancel"
         data = cancel_request.to_request_data()
         return self._request("POST", endpoint, data=data, **kwargs)
 

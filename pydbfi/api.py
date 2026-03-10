@@ -93,6 +93,7 @@ class DomesticAPI(BaseAPI):
         credit_type: str = "000",  # 보통
         loan_date: str = "00000000",  # 일반주문
         order_condition: str = "0",  # 없음
+        use_nxt: bool = False,
     ) -> Dict[str, Any]:
         order_request = DomesticOrderRequest(
             stock_code=stock_code,
@@ -104,9 +105,8 @@ class DomesticAPI(BaseAPI):
             loan_date=loan_date,
             order_condition=order_condition,
         )
-        return self._execute_service(
-            self._get_trading_service, "place_order", request=order_request
-        )
+        service = self._get_trading_service()
+        return service.place_order(order_request, use_nxt=use_nxt)
 
     def sell(
         self,
@@ -117,6 +117,7 @@ class DomesticAPI(BaseAPI):
         credit_type: str = "000",  # 보통
         loan_date: str = "00000000",  # 일반주문
         order_condition: str = "0",  # 없음
+        use_nxt: bool = False,
     ) -> Dict[str, Any]:
         order_request = DomesticOrderRequest(
             stock_code=stock_code,
@@ -128,17 +129,15 @@ class DomesticAPI(BaseAPI):
             loan_date=loan_date,
             order_condition=order_condition,
         )
-        return self._execute_service(
-            self._get_trading_service, "place_order", request=order_request
-        )
+        service = self._get_trading_service()
+        return service.place_order(order_request, use_nxt=use_nxt)
 
-    def cancel(self, order_no: int, stock_code: str, quantity: int) -> Dict[str, Any]:
+    def cancel(self, order_no: int, stock_code: str, quantity: int, use_nxt: bool = False) -> Dict[str, Any]:
         cancel_request = DomesticCancelOrderRequest(
             original_order_no=order_no, stock_code=stock_code, quantity=quantity
         )
-        return self._execute_service(
-            self._get_trading_service, "cancel_order", request=cancel_request
-        )
+        service = self._get_trading_service()
+        return service.cancel_order(cancel_request, use_nxt=use_nxt)
 
     def get_transaction_history(
         self,
